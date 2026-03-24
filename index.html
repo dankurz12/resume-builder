@@ -800,7 +800,7 @@ transition: width 0.4s ease;
 <header>
   <div class="logo" onclick="location.reload()" style="cursor:pointer">Resume<span>Forge</span></div>
   <div style="display:flex;align-items:center;gap:0.75rem">
-    <button class="btn-sm" id="addTplBtn" onclick="document.getElementById('inlineAddTpl').style.display==='none'?showAddTemplateForm():hideAddTemplateForm()">+ Add Template</button>
+    <button class="btn-sm" id="addTplBtn" onclick="toggleAddTemplateForm()">+ Add Template</button>
     <button class="api-pill" onclick="openApiModal()">
       <span class="api-dot" id="apiDot"></span>
       <span id="apiLabel">Set API Key</span>
@@ -837,7 +837,7 @@ transition: width 0.4s ease;
 
   <!-- Template Library: full width -->
 
-  <div class=”card fade-up” style=”grid-column: 1 / -1; animation-delay:0s”>
+  <div class=”card fade-up” style=”grid-column: 1 / -1; animation-delay:0s; overflow: visible;”>
     <div class=”card-header”>
       <span class=”card-title”>00 — My Resume Templates</span>
       <span id=”tplCount” style=”font-family:’DM Mono’,monospace;font-size:0.7rem;color:rgba(14,14,14,0.4)”>0 saved</span>
@@ -1131,7 +1131,7 @@ function showAddTemplateForm() {
   if (addBtn) addBtn.textContent = '✕ Close';
   document.getElementById('inlineAddTpl').style.display = 'block';
   setTimeout(() => {
-    document.getElementById('tplName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('tplName').scrollIntoView({ behavior: 'instant', block: 'center' });
     document.getElementById('tplName').focus();
   }, 50);
 }
@@ -1143,6 +1143,14 @@ function hideAddTemplateForm() {
   pendingTemplateText = '';
   pendingDocxBase64 = null;
   pendingParagraphs = null;
+}
+
+function toggleAddTemplateForm() {
+  if (document.getElementById('inlineAddTpl').style.display === 'none') {
+    showAddTemplateForm();
+  } else {
+    hideAddTemplateForm();
+  }
 }
 
 async function handleTemplateFile(e) {
