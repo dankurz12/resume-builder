@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResumeForge — AI Resume Tailor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+–ink: #0e0e0e;
+–paper: #f5f0e8;
+–cream: #ede8db;
+–gold: #b8953a;
+–gold-light: #d4a84b;
+–rust: #8b3a2a;
+–sage: #4a5c4e;
+–mist: #c8cfc9;
+–white: #fdfaf4;
+}
+
+body {
+font-family: ‘DM Sans’, sans-serif;
+background: var(–paper);
+color: var(–ink);
+min-height: 100vh;
+overflow-x: hidden;
+}
+
+/* Noise texture overlay */
+body::before {
+content: ‘’;
+position: fixed;
+inset: 0;
+background-image: url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 256 256’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘noise’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23noise)’ opacity=‘0.04’/%3E%3C/svg%3E”);
+pointer-events: none;
+z-index: 1000;
+opacity: 0.5;
+}
+
+/* Header */
+header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 1.5rem 3rem;
+border-bottom: 1px solid rgba(14,14,14,0.12);
+position: sticky;
+top: 0;
+background: rgba(245,240,232,0.92);
+backdrop-filter: blur(12px);
+z-index: 100;
+}
+
+.logo {
+font-family: ‘Playfair Display’, serif;
+font-size: 1.5rem;
+font-weight: 900;
+letter-spacing: -0.02em;
+color: var(–ink);
+display: flex;
+align-items: center;
+gap: 0.5rem;
+}
+
+.logo span {
+color: var(–gold);
+}
+
+.api-pill {
+display: flex;
+align-items: center;
+gap: 0.5rem;
+background: var(–cream);
+border: 1px solid rgba(14,14,14,0.15);
+border-radius: 100px;
+padding: 0.4rem 0.9rem;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.72rem;
+color: var(–ink);
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.api-pill:hover { background: var(–ink); color: var(–paper); }
+
+.api-dot {
+width: 7px; height: 7px;
+border-radius: 50%;
+background: var(–rust);
+transition: background 0.3s;
+}
+
+.api-dot.connected { background: #4a7c59; }
+
+/* Hero */
+.hero {
+padding: 5rem 3rem 3rem;
+max-width: 1200px;
+margin: 0 auto;
+}
+
+.hero-eyebrow {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.72rem;
+letter-spacing: 0.18em;
+text-transform: uppercase;
+color: var(–gold);
+margin-bottom: 1rem;
+}
+
+.hero h1 {
+font-family: ‘Playfair Display’, serif;
+font-size: clamp(3rem, 6vw, 5.5rem);
+font-weight: 900;
+line-height: 1.0;
+letter-spacing: -0.03em;
+color: var(–ink);
+max-width: 14ch;
+}
+
+.hero h1 em {
+font-style: italic;
+color: var(–gold);
+}
+
+.hero-sub {
+margin-top: 1.5rem;
+font-size: 1.05rem;
+color: rgba(14,14,14,0.6);
+max-width: 48ch;
+line-height: 1.6;
+font-weight: 300;
+}
+
+/* Main layout */
+.workspace {
+max-width: 1200px;
+margin: 0 auto;
+padding: 2rem 3rem 5rem;
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 2rem;
+align-items: start;
+}
+
+/* Cards */
+.card {
+background: var(–white);
+border: 1px solid rgba(14,14,14,0.1);
+border-radius: 4px;
+overflow: hidden;
+box-shadow: 4px 4px 0px rgba(14,14,14,0.06);
+transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.card:hover {
+box-shadow: 6px 6px 0px rgba(14,14,14,0.1);
+transform: translate(-1px, -1px);
+}
+
+.card-header {
+padding: 1.25rem 1.5rem;
+border-bottom: 1px solid rgba(14,14,14,0.08);
+display: flex;
+align-items: center;
+justify-content: space-between;
+}
+
+.card-title {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.72rem;
+letter-spacing: 0.14em;
+text-transform: uppercase;
+color: rgba(14,14,14,0.5);
+display: flex;
+align-items: center;
+gap: 0.6rem;
+}
+
+.card-title::before {
+content: ‘’;
+display: inline-block;
+width: 6px; height: 6px;
+border-radius: 50%;
+background: var(–gold);
+}
+
+.card-body { padding: 1.5rem; }
+
+/* File upload zone */
+.upload-zone {
+border: 1.5px dashed rgba(14,14,14,0.2);
+border-radius: 3px;
+padding: 2.5rem 1.5rem;
+text-align: center;
+cursor: pointer;
+transition: all 0.25s;
+background: var(–cream);
+position: relative;
+}
+
+.upload-zone:hover, .upload-zone.dragover {
+border-color: var(–gold);
+background: rgba(184,149,58,0.06);
+}
+
+.upload-zone input[type=“file”] {
+position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+
+.upload-icon {
+font-size: 2rem;
+margin-bottom: 0.75rem;
+display: block;
+opacity: 0.4;
+}
+
+.upload-zone p {
+font-size: 0.88rem;
+color: rgba(14,14,14,0.5);
+font-weight: 300;
+}
+
+.upload-zone strong {
+color: var(–ink);
+font-weight: 500;
+}
+
+.file-badge {
+display: inline-flex;
+align-items: center;
+gap: 0.5rem;
+background: var(–sage);
+color: white;
+padding: 0.35rem 0.75rem;
+border-radius: 3px;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.72rem;
+margin-top: 0.75rem;
+cursor: pointer;
+transition: background 0.2s;
+}
+.file-badge:hover { background: var(–rust); }
+
+/* Textarea */
+textarea {
+width: 100%;
+border: 1px solid rgba(14,14,14,0.12);
+border-radius: 3px;
+padding: 1rem;
+font-family: ‘DM Sans’, sans-serif;
+font-size: 0.88rem;
+line-height: 1.6;
+resize: vertical;
+background: var(–cream);
+color: var(–ink);
+outline: none;
+transition: border-color 0.2s;
+min-height: 160px;
+}
+textarea:focus { border-color: var(–gold); }
+textarea::placeholder { color: rgba(14,14,14,0.35); }
+
+/* Or divider */
+.or-divider {
+display: flex;
+align-items: center;
+gap: 0.75rem;
+margin: 1rem 0;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.7rem;
+color: rgba(14,14,14,0.35);
+letter-spacing: 0.1em;
+}
+.or-divider::before, .or-divider::after {
+content: ‘’;
+flex: 1;
+height: 1px;
+background: rgba(14,14,14,0.1);
+}
+
+/* URL input */
+.url-row {
+display: flex;
+gap: 0.5rem;
+}
+.url-input {
+flex: 1;
+border: 1px solid rgba(14,14,14,0.12);
+border-radius: 3px;
+padding: 0.6rem 0.9rem;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.78rem;
+background: var(–cream);
+color: var(–ink);
+outline: none;
+transition: border-color 0.2s;
+min-width: 0;
+}
+.url-input:focus { border-color: var(–gold); }
+.url-input::placeholder { color: rgba(14,14,14,0.35); }
+
+.btn-sm {
+padding: 0.6rem 1rem;
+background: var(–ink);
+color: var(–paper);
+border: none;
+border-radius: 3px;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.72rem;
+cursor: pointer;
+letter-spacing: 0.06em;
+transition: background 0.2s;
+white-space: nowrap;
+}
+.btn-sm:hover { background: var(–gold); }
+
+/* Section label */
+.section-label {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.7rem;
+letter-spacing: 0.1em;
+text-transform: uppercase;
+color: rgba(14,14,14,0.45);
+margin-bottom: 0.6rem;
+display: block;
+}
+
+/* API key modal */
+.modal-overlay {
+display: none;
+position: fixed;
+inset: 0;
+background: rgba(14,14,14,0.6);
+z-index: 500;
+backdrop-filter: blur(4px);
+align-items: center;
+justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+background: var(–white);
+border: 1px solid rgba(14,14,14,0.12);
+border-radius: 4px;
+padding: 2rem;
+width: 100%;
+max-width: 440px;
+box-shadow: 12px 12px 0 rgba(14,14,14,0.12);
+}
+
+.modal h2 {
+font-family: ‘Playfair Display’, serif;
+font-size: 1.6rem;
+font-weight: 700;
+margin-bottom: 0.5rem;
+}
+
+.modal p {
+font-size: 0.85rem;
+color: rgba(14,14,14,0.55);
+margin-bottom: 1.25rem;
+line-height: 1.6;
+}
+
+.modal input {
+width: 100%;
+border: 1px solid rgba(14,14,14,0.15);
+border-radius: 3px;
+padding: 0.7rem 1rem;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.8rem;
+background: var(–cream);
+color: var(–ink);
+outline: none;
+margin-bottom: 1rem;
+}
+.modal input:focus { border-color: var(–gold); }
+
+.modal-note {
+font-size: 0.75rem !important;
+color: rgba(14,14,14,0.4) !important;
+margin-top: 0.75rem !important;
+font-family: ‘DM Mono’, monospace;
+}
+
+/* Big action button */
+.btn-forge {
+width: 100%;
+padding: 1.1rem;
+background: var(–ink);
+color: var(–paper);
+border: none;
+border-radius: 3px;
+font-family: ‘Playfair Display’, serif;
+font-size: 1.15rem;
+font-weight: 700;
+font-style: italic;
+cursor: pointer;
+letter-spacing: 0.01em;
+transition: all 0.25s;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 0.75rem;
+margin-top: 1.5rem;
+position: relative;
+overflow: hidden;
+}
+
+.btn-forge::before {
+content: ‘’;
+position: absolute;
+inset: 0;
+background: var(–gold);
+transform: scaleX(0);
+transform-origin: left;
+transition: transform 0.3s ease;
+}
+
+.btn-forge:hover::before { transform: scaleX(1); }
+.btn-forge:hover { color: var(–ink); }
+.btn-forge span { position: relative; z-index: 1; }
+.btn-forge:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-forge:disabled::before { display: none; }
+
+/* Status / output panel */
+.output-panel {
+grid-column: 1 / -1;
+display: none;
+}
+.output-panel.visible { display: block; }
+
+.status-log {
+background: var(–ink);
+color: #a8c5a0;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.78rem;
+padding: 1.25rem 1.5rem;
+border-radius: 3px;
+line-height: 2;
+min-height: 80px;
+}
+.status-log .log-line { display: block; }
+.status-log .log-line.dim { color: rgba(168,197,160,0.45); }
+.status-log .log-line.error { color: #e07070; }
+.status-log .log-line.success { color: #7ed4a0; }
+
+/* Result card */
+.result-card {
+display: none;
+background: var(–white);
+border: 2px solid var(–gold);
+border-radius: 4px;
+padding: 2rem;
+margin-top: 1.5rem;
+box-shadow: 6px 6px 0 rgba(184,149,58,0.15);
+}
+.result-card.visible { display: block; }
+
+.result-header {
+display: flex;
+justify-content: space-between;
+align-items: flex-start;
+margin-bottom: 1.5rem;
+flex-wrap: wrap;
+gap: 1rem;
+}
+
+.result-header h2 {
+font-family: ‘Playfair Display’, serif;
+font-size: 1.5rem;
+font-weight: 700;
+}
+
+.result-header h2 small {
+display: block;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.7rem;
+font-weight: 400;
+color: rgba(14,14,14,0.45);
+margin-top: 0.2rem;
+letter-spacing: 0.1em;
+text-transform: uppercase;
+}
+
+.btn-download {
+display: inline-flex;
+align-items: center;
+gap: 0.5rem;
+padding: 0.75rem 1.5rem;
+background: var(–gold);
+color: var(–ink);
+border: none;
+border-radius: 3px;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.78rem;
+font-weight: 500;
+cursor: pointer;
+letter-spacing: 0.08em;
+transition: all 0.2s;
+text-transform: uppercase;
+}
+.btn-download:hover { background: var(–ink); color: var(–paper); }
+
+.changes-list {
+margin-top: 0.5rem;
+}
+
+.change-item {
+display: flex;
+gap: 0.75rem;
+padding: 0.75rem 0;
+border-bottom: 1px solid rgba(14,14,14,0.07);
+font-size: 0.88rem;
+line-height: 1.5;
+}
+.change-item:last-child { border-bottom: none; }
+
+.change-tag {
+flex-shrink: 0;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.65rem;
+padding: 0.2rem 0.5rem;
+border-radius: 2px;
+letter-spacing: 0.08em;
+text-transform: uppercase;
+height: fit-content;
+margin-top: 1px;
+}
+.change-tag.added { background: rgba(74,92,78,0.15); color: var(–sage); }
+.change-tag.modified { background: rgba(184,149,58,0.15); color: var(–gold); }
+.change-tag.keyword { background: rgba(139,58,42,0.12); color: var(–rust); }
+
+/* Tabs */
+.tabs {
+display: flex;
+gap: 0;
+border-bottom: 1px solid rgba(14,14,14,0.1);
+margin-bottom: 1.25rem;
+}
+
+.tab {
+padding: 0.6rem 1rem;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.72rem;
+letter-spacing: 0.1em;
+text-transform: uppercase;
+cursor: pointer;
+border-bottom: 2px solid transparent;
+color: rgba(14,14,14,0.45);
+transition: all 0.2s;
+user-select: none;
+margin-bottom: -1px;
+}
+.tab.active { color: var(–ink); border-bottom-color: var(–gold); }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Resume preview text */
+.resume-preview {
+white-space: pre-wrap;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.75rem;
+line-height: 1.8;
+color: rgba(14,14,14,0.75);
+background: var(–cream);
+padding: 1.25rem;
+border-radius: 3px;
+max-height: 400px;
+overflow-y: auto;
+border: 1px solid rgba(14,14,14,0.08);
+}
+
+/* Spinner */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+width: 16px; height: 16px;
+border: 2px solid rgba(245,240,232,0.3);
+border-top-color: var(–paper);
+border-radius: 50%;
+animation: spin 0.7s linear infinite;
+flex-shrink: 0;
+}
+
+/* Fade in */
+@keyframes fadeUp {
+from { opacity: 0; transform: translateY(16px); }
+to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.5s ease forwards; }
+
+/* Responsive */
+@media (max-width: 768px) {
+header { padding: 1.25rem 1.5rem; }
+.hero { padding: 3rem 1.5rem 2rem; }
+.workspace { padding: 1.5rem; grid-template-columns: 1fr; }
+.output-panel { grid-column: 1; }
+}
+
+/* Instruction chips */
+.chips {
+display: flex;
+flex-wrap: wrap;
+gap: 0.4rem;
+margin-top: 0.75rem;
+}
+.chip {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.68rem;
+padding: 0.25rem 0.6rem;
+border: 1px solid rgba(14,14,14,0.15);
+border-radius: 100px;
+cursor: pointer;
+transition: all 0.15s;
+color: rgba(14,14,14,0.6);
+user-select: none;
+}
+.chip:hover { background: var(–ink); color: var(–paper); border-color: var(–ink); }
+
+.progress-bar-wrap {
+height: 2px;
+background: rgba(14,14,14,0.08);
+border-radius: 1px;
+margin-bottom: 1.5rem;
+overflow: hidden;
+}
+.progress-bar {
+height: 100%;
+background: var(–gold);
+border-radius: 1px;
+width: 0%;
+transition: width 0.4s ease;
+}
+</style>
+
+</head>
+<body>
+
+<header>
+  <div class="logo">Resume<span>Forge</span></div>
+  <button class="api-pill" onclick="openApiModal()">
+    <span class="api-dot" id="apiDot"></span>
+    <span id="apiLabel">Set API Key</span>
+  </button>
+</header>
+
+<div class="hero">
+  <p class="hero-eyebrow">✦ AI-Powered Resume Tailoring</p>
+  <h1>Forge the <em>perfect</em> resume for every role.</h1>
+  <p class="hero-sub">Upload your base resume, drop in a job description, and let Claude rewrite it to match — then download a polished Word document.</p>
+</div>
+
+<!-- API Key Modal -->
+
+<div class="modal-overlay" id="apiModal">
+  <div class="modal">
+    <h2>API Key</h2>
+    <p>Enter your Anthropic API key to power the resume tailoring. It's stored only in your browser's memory and never sent anywhere except Anthropic's API directly.</p>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+    <button class="btn-sm" style="width:100%; padding:0.75rem;" onclick="saveApiKey()">Save Key</button>
+    <p class="modal-note">🔒 Key lives only in this browser session. For GitHub Pages deployment, use a serverless proxy instead.</p>
+  </div>
+</div>
+
+<div class="workspace">
+
+  <!-- Left: Resume Upload -->
+
+  <div class="card fade-up" style="animation-delay:0.1s">
+    <div class="card-header">
+      <span class="card-title">01 — Your Resume</span>
+      <span id="resumeStatus" style="font-family:'DM Mono',monospace;font-size:0.7rem;color:rgba(14,14,14,0.4)">No file</span>
+    </div>
+    <div class="card-body">
+      <div class="upload-zone" id="resumeZone" ondragover="handleDrag(event,'resumeZone')" ondragleave="handleDragLeave('resumeZone')" ondrop="handleDrop(event,'resume')">
+        <input type="file" id="resumeFile" accept=".docx,.txt,.pdf" onchange="handleResumeFile(event)">
+        <span class="upload-icon">📄</span>
+        <p><strong>Drop your resume here</strong></p>
+        <p>Supports .docx, .txt — or paste text below</p>
+      </div>
+
+```
+  <div id="resumeFileBadge" style="display:none">
+    <span class="file-badge" onclick="clearResume()">📄 <span id="resumeFileName"></span> ✕</span>
+  </div>
+
+  <div class="or-divider">or paste text</div>
+
+  <textarea id="resumeText" placeholder="Paste your resume content here...
+```
+
+John Smith | john@email.com | linkedin.com/in/johnsmith
+
+EXPERIENCE
+Senior Product Manager — Acme Corp (2020–Present)
+• Led cross-functional teams of 12 to ship 3 major product lines…” rows=“10”></textarea>
+
+```
+  <div style="margin-top:1rem">
+    <span class="section-label">Tailoring focus</span>
+    <div class="chips">
+      <div class="chip" onclick="toggleChip(this)">Skills keywords</div>
+      <div class="chip" onclick="toggleChip(this)">Reorder bullet points</div>
+      <div class="chip" onclick="toggleChip(this)">Sharpen summary</div>
+      <div class="chip" onclick="toggleChip(this)">Match job title</div>
+      <div class="chip" onclick="toggleChip(this)">Quantify achievements</div>
+      <div class="chip" onclick="toggleChip(this)">Remove irrelevant exp.</div>
+    </div>
+  </div>
+</div>
+```
+
+  </div>
+
+  <!-- Right: Job Description -->
+
+  <div class="card fade-up" style="animation-delay:0.2s">
+    <div class="card-header">
+      <span class="card-title">02 — Job Description</span>
+    </div>
+    <div class="card-body">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('paste')">Paste Text</div>
+        <div class="tab" onclick="switchTab('url')">From URL</div>
+        <div class="tab" onclick="switchTab('image')">Screenshot</div>
+      </div>
+
+```
+  <div class="tab-content active" id="tab-paste">
+    <textarea id="jdText" placeholder="Paste the full job description here...
+```
+
+About the Role:
+We’re looking for a Senior Product Manager to join our growing team…
+
+Requirements:
+• 5+ years of product management experience
+• Strong analytical skills…” rows=“14”></textarea>
+</div>
+
+```
+  <div class="tab-content" id="tab-url">
+    <span class="section-label">Job posting URL</span>
+    <div class="url-row">
+      <input class="url-input" id="jdUrl" placeholder="https://jobs.company.com/role-id" />
+      <button class="btn-sm" onclick="fetchUrl()">Fetch ↗</button>
+    </div>
+    <p style="font-size:0.78rem;color:rgba(14,14,14,0.4);margin-top:0.75rem;font-family:'DM Mono',monospace;line-height:1.6">Note: URL fetching requires a backend proxy due to CORS. For now, paste the text from the page instead.</p>
+  </div>
+
+  <div class="tab-content" id="tab-image">
+    <div class="upload-zone" id="imgZone" ondragover="handleDrag(event,'imgZone')" ondragleave="handleDragLeave('imgZone')" ondrop="handleDrop(event,'image')">
+      <input type="file" id="jdImage" accept="image/*" onchange="handleImageFile(event)">
+      <span class="upload-icon">🖼️</span>
+      <p><strong>Drop a screenshot of the job posting</strong></p>
+      <p>Claude will read it via vision</p>
+    </div>
+    <div id="imgPreview" style="display:none;margin-top:0.75rem">
+      <img id="imgThumb" style="max-width:100%;border-radius:3px;border:1px solid rgba(14,14,14,0.1)" />
+      <span class="file-badge" onclick="clearImage()">Remove ✕</span>
+    </div>
+  </div>
+
+  <div style="margin-top:1.25rem">
+    <span class="section-label">Additional instructions (optional)</span>
+    <textarea id="extraInstructions" placeholder="e.g. Keep it to one page. Emphasize leadership experience. Don't remove the volunteer section..." rows="3"></textarea>
+  </div>
+</div>
+```
+
+  </div>
+
+  <!-- Action button spanning both cols -->
+
+  <div style="grid-column: 1 / -1; padding: 0 0 0.5rem">
+    <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    <button class="btn-forge" id="forgeBtn" onclick="forgeResume()">
+      <span>✦ Forge My Resume</span>
+    </button>
+  </div>
+
+  <!-- Output panel -->
+
+  <div class="output-panel" id="outputPanel">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Activity Log</span>
+      </div>
+      <div class="card-body" style="padding:0">
+        <div class="status-log" id="statusLog"></div>
+      </div>
+    </div>
+
+```
+<div class="result-card" id="resultCard">
+  <div class="result-header">
+    <h2>
+      Resume Ready
+      <small>Tailored · Download below</small>
+    </h2>
+    <button class="btn-download" id="downloadBtn" onclick="downloadDocx()">
+      ↓ Download .docx
+    </button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchResultTab('changes')">What Changed</div>
+    <div class="tab" onclick="switchResultTab('preview')">Text Preview</div>
+  </div>
+
+  <div class="tab-content active" id="result-tab-changes">
+    <div class="changes-list" id="changesList"></div>
+  </div>
+  <div class="tab-content" id="result-tab-preview">
+    <div class="resume-preview" id="resumePreview"></div>
+  </div>
+</div>
+```
+
+  </div>
+
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let apiKey = '';
+let resumeFileData = null; // ArrayBuffer for docx
+let resumeTextContent = '';
+let jdImageData = null; // base64
+let tailoredResumeText = '';
+let activeChips = new Set();
+let currentTab = 'paste';
+
+// ─── API Key ─────────────────────────────────────────────────────────────────
+function openApiModal() {
+  document.getElementById('apiModal').classList.add('open');
+  document.getElementById('apiKeyInput').value = apiKey || '';
+}
+function saveApiKey() {
+  apiKey = document.getElementById('apiKeyInput').value.trim();
+  document.getElementById('apiModal').classList.remove('open');
+  if (apiKey) {
+    document.getElementById('apiDot').classList.add('connected');
+    document.getElementById('apiLabel').textContent = 'Key set ✓';
+  }
+}
+document.getElementById('apiModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+});
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  currentTab = name;
+  document.querySelectorAll('.tabs:not(.result-tabs) .tab').forEach((t,i) => {
+    const tabs = ['paste','url','image'];
+    t.classList.toggle('active', tabs[i] === name);
+  });
+  ['paste','url','image'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
+  });
+}
+
+function switchResultTab(name) {
+  document.querySelectorAll('#resultCard .tab').forEach((t,i) => {
+    t.classList.toggle('active', i === (['changes','preview'].indexOf(name)));
+  });
+  document.getElementById('result-tab-changes').classList.toggle('active', name === 'changes');
+  document.getElementById('result-tab-preview').classList.toggle('active', name === 'preview');
+}
+
+// ─── File Handling ────────────────────────────────────────────────────────────
+function handleDrag(e, zoneId) {
+  e.preventDefault();
+  document.getElementById(zoneId).classList.add('dragover');
+}
+function handleDragLeave(zoneId) {
+  document.getElementById(zoneId).classList.remove('dragover');
+}
+function handleDrop(e, type) {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  if (type === 'resume') processResumeFile(file);
+  else if (type === 'image') processImageFile(file);
+}
+
+function handleResumeFile(e) { processResumeFile(e.target.files[0]); }
+function handleImageFile(e) { processImageFile(e.target.files[0]); }
+
+function processResumeFile(file) {
+  if (!file) return;
+  document.getElementById('resumeFileName').textContent = file.name;
+  document.getElementById('resumeFileBadge').style.display = 'block';
+  document.getElementById('resumeStatus').textContent = file.name;
+
+  const reader = new FileReader();
+  if (file.name.endsWith('.docx')) {
+    reader.onload = e => {
+      resumeFileData = e.target.result;
+      // Extract text from docx for display/prompt
+      extractDocxText(e.target.result).then(text => {
+        resumeTextContent = text;
+        document.getElementById('resumeText').value = text;
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    reader.onload = e => {
+      resumeTextContent = e.target.result;
+      document.getElementById('resumeText').value = resumeTextContent;
+    };
+    reader.readAsText(file);
+  }
+}
+
+async function extractDocxText(arrayBuffer) {
+  // Simple docx text extraction: docx files are zips with XML
+  try {
+    // Use a simple approach - read as text and strip XML tags
+    const arr = new Uint8Array(arrayBuffer);
+    const text = new TextDecoder('utf-8', {fatal: false}).decode(arr);
+    // Extract text between XML tags (rough)
+    const matches = text.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
+    const extracted = matches.map(m => m.replace(/<[^>]+>/g, '')).join(' ');
+    return extracted.length > 50 ? extracted : '[Binary .docx — text extracted above. Edit as needed.]';
+  } catch(e) {
+    return '[Could not extract text. Please paste your resume content in the text area.]';
+  }
+}
+
+function clearResume() {
+  resumeFileData = null;
+  resumeTextContent = '';
+  document.getElementById('resumeFileBadge').style.display = 'none';
+  document.getElementById('resumeStatus').textContent = 'No file';
+  document.getElementById('resumeFile').value = '';
+}
+
+function processImageFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    jdImageData = e.target.result.split(',')[1]; // base64
+    document.getElementById('imgThumb').src = e.target.result;
+    document.getElementById('imgPreview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage() {
+  jdImageData = null;
+  document.getElementById('imgPreview').style.display = 'none';
+  document.getElementById('jdImage').value = '';
+}
+
+function fetchUrl() {
+  const url = document.getElementById('jdUrl').value.trim();
+  if (!url) return;
+  log('URL fetching requires a server-side proxy (CORS). Paste the job description text instead.', 'error');
+}
+
+// ─── Chips ────────────────────────────────────────────────────────────────────
+function toggleChip(el) {
+  const val = el.textContent;
+  if (activeChips.has(val)) {
+    activeChips.delete(val);
+    el.style.background = '';
+    el.style.color = '';
+    el.style.borderColor = '';
+  } else {
+    activeChips.add(val);
+    el.style.background = 'var(--ink)';
+    el.style.color = 'var(--paper)';
+    el.style.borderColor = 'var(--ink)';
+  }
+}
+
+// ─── Logging ──────────────────────────────────────────────────────────────────
+function log(msg, type = '') {
+  const log = document.getElementById('statusLog');
+  const line = document.createElement('span');
+  line.className = `log-line ${type}`;
+  const time = new Date().toLocaleTimeString('en-US', {hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  line.textContent = `[${time}] ${msg}`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+function setProgress(pct) {
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+// ─── Main: Forge Resume ───────────────────────────────────────────────────────
+async function forgeResume() {
+  if (!apiKey) {
+    openApiModal();
+    return;
+  }
+
+  const resumeText = document.getElementById('resumeText').value.trim();
+  const jdText = document.getElementById('jdText').value.trim();
+  const extra = document.getElementById('extraInstructions').value.trim();
+
+  if (!resumeText) {
+    alert('Please provide your resume content (upload a file or paste text).');
+    return;
+  }
+
+  const hasJD = jdText || jdImageData;
+  if (!hasJD) {
+    alert('Please provide a job description (paste text or upload a screenshot).');
+    return;
+  }
+
+  // Show output panel
+  document.getElementById('outputPanel').classList.add('visible');
+  document.getElementById('statusLog').innerHTML = '';
+  document.getElementById('resultCard').classList.remove('visible');
+  const btn = document.getElementById('forgeBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span><span>Forging…</span>';
+  setProgress(10);
+
+  log('Preparing resume and job description…');
+
+  const focusInstructions = activeChips.size > 0
+    ? `\nFocus especially on: ${[...activeChips].join(', ')}.`
+    : '';
+
+  const extraBlock = extra ? `\n\nAdditional instructions from the user: ${extra}` : '';
+
+  const systemPrompt = `You are an expert resume writer and career coach. Your job is to tailor a resume to a specific job description.
+
+When tailoring:
+1. Rewrite bullet points to use language and keywords from the job description
+2. Reorder experiences to highlight the most relevant first
+3. Update the summary/objective to match the role
+4. Add relevant keywords naturally without keyword stuffing
+5. Quantify achievements where possible
+6. Keep the same overall structure and all true facts — never invent experience
+7. Return ONLY the tailored resume text, followed by a JSON block
+
+Output format — return EXACTLY this structure:
+<RESUME>
+[Full tailored resume text here]
+</RESUME>
+<CHANGES>
+[{"type":"modified","description":"..."},{"type":"added","description":"..."},{"type":"keyword","description":"..."}]
+</CHANGES>`;
+
+  // Build user message content
+  const userContent = [];
+
+  if (jdImageData) {
+    log('Including job description screenshot…');
+    userContent.push({
+      type: 'image',
+      source: { type: 'base64', media_type: 'image/png', data: jdImageData }
+    });
+    userContent.push({ type: 'text', text: 'Above is a screenshot of the job description.' });
+  }
+
+  userContent.push({
+    type: 'text',
+    text: `Here is my current resume:
+
+<RESUME>
+${resumeText}
+</RESUME>
+
+${jdText ? `Here is the job description:\n\n<JOB_DESCRIPTION>\n${jdText}\n</JOB_DESCRIPTION>` : ''}
+${focusInstructions}${extraBlock}
+
+Please tailor my resume for this role. Return the full tailored resume wrapped in <RESUME> tags, then a JSON array of changes wrapped in <CHANGES> tags.`
+  });
+
+  setProgress(25);
+  log('Sending to Claude API…');
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userContent }]
+      })
+    });
+
+    setProgress(70);
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const rawText = data.content.map(b => b.text || '').join('');
+
+    setProgress(85);
+    log('Response received. Parsing…');
+
+    // Extract resume and changes
+    const resumeMatch = rawText.match(/<RESUME>([\s\S]*?)<\/RESUME>/);
+    const changesMatch = rawText.match(/<CHANGES>([\s\S]*?)<\/CHANGES>/);
+
+    if (!resumeMatch) {
+      throw new Error('Could not parse response. Try again.');
+    }
+
+    tailoredResumeText = resumeMatch[1].trim();
+    setProgress(95);
+    log('Resume tailored successfully!', 'success');
+
+    // Parse changes
+    let changes = [];
+    if (changesMatch) {
+      try {
+        changes = JSON.parse(changesMatch[1].trim());
+      } catch(e) {
+        changes = [{type:'modified', description:'Resume tailored to match job description.'}];
+      }
+    }
+
+    // Show results
+    displayResults(tailoredResumeText, changes);
+    setProgress(100);
+
+  } catch (err) {
+    log(`Error: ${err.message}`, 'error');
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>✦ Forge My Resume</span>';
+  }
+}
+
+// ─── Display Results ──────────────────────────────────────────────────────────
+function displayResults(text, changes) {
+  document.getElementById('resultCard').classList.add('visible');
+  document.getElementById('resumePreview').textContent = text;
+
+  const list = document.getElementById('changesList');
+  list.innerHTML = '';
+
+  if (changes.length === 0) {
+    list.innerHTML = '<p style="font-size:0.85rem;color:rgba(14,14,14,0.5);padding:0.5rem 0">No changes logged.</p>';
+    return;
+  }
+
+  changes.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'change-item';
+    item.innerHTML = `
+      <span class="change-tag ${c.type || 'modified'}">${c.type || 'modified'}</span>
+      <span>${c.description}</span>
+    `;
+    list.appendChild(item);
+  });
+
+  // Scroll to result
+  document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─── Download .docx ───────────────────────────────────────────────────────────
+async function downloadDocx() {
+  if (!tailoredResumeText) return;
+
+  log('Generating Word document…');
+
+  try {
+    const { Document, Paragraph, TextRun, HeadingLevel, Packer, AlignmentType } = docx;
+
+    const lines = tailoredResumeText.split('\n');
+    const paragraphs = [];
+
+    lines.forEach(line => {
+      const trimmed = line.trim();
+
+      if (!trimmed) {
+        paragraphs.push(new Paragraph({ text: '', spacing: { after: 80 } }));
+        return;
+      }
+
+      // Detect headings: ALL CAPS lines or lines ending with a colon
+      const isHeading = /^[A-Z][A-Z\s\/&]+$/.test(trimmed) && trimmed.length < 40;
+      // Detect bullet points
+      const isBullet = trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*');
+      // Detect name line (first non-empty line that's short)
+      const isName = paragraphs.filter(p => p.root).length < 2 && trimmed.length < 60 && !trimmed.includes('|') && !trimmed.includes('@');
+
+      if (isName && paragraphs.length < 3) {
+        paragraphs.push(new Paragraph({
+          children: [new TextRun({ text: trimmed, bold: true, size: 32, font: 'Calibri' })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 80 }
+        }));
+      } else if (isHeading) {
+        paragraphs.push(new Paragraph({
+          children: [new TextRun({ text: trimmed, bold: true, size: 24, font: 'Calibri', color: '1a1a1a' })],
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 80 },
+          border: { bottom: { color: 'b8953a', size: 6, space: 4, style: 'single' } }
+        }));
+      } else if (isBullet) {
+        const bulletText = trimmed.replace(/^[•\-\*]\s*/, '');
+        paragraphs.push(new Paragraph({
+          children: [new TextRun({ text: bulletText, size: 20, font: 'Calibri' })],
+          bullet: { level: 0 },
+          spacing: { after: 60 }
+        }));
+      } else if (trimmed.includes('|')) {
+        // Contact line
+        paragraphs.push(new Paragraph({
+          children: [new TextRun({ text: trimmed, size: 18, font: 'Calibri', color: '555555' })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 80 }
+        }));
+      } else {
+        paragraphs.push(new Paragraph({
+          children: [new TextRun({ text: trimmed, size: 20, font: 'Calibri' })],
+          spacing: { after: 80 }
+        }));
+      }
+    });
+
+    const doc = new Document({
+      sections: [{
+        properties: {
+          page: {
+            margin: { top: 720, right: 900, bottom: 720, left: 900 }
+          }
+        },
+        children: paragraphs
+      }],
+      styles: {
+        default: {
+          document: {
+            run: { font: 'Calibri', size: 20, color: '1a1a1a' }
+          }
+        }
+      }
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tailored-resume.docx';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    log('Word document downloaded!', 'success');
+
+  } catch(err) {
+    log(`Error generating .docx: ${err.message}`, 'error');
+    console.error(err);
+  }
+}
+</script>
+
+</body>
+</html>
