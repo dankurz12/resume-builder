@@ -800,7 +800,7 @@ transition: width 0.4s ease;
 <header>
   <div class="logo" onclick="location.reload()" style="cursor:pointer">Resume<span>Forge</span></div>
   <div style="display:flex;align-items:center;gap:0.75rem">
-    <button class="btn-sm" id="addTplBtn" onclick="showAddTemplateForm()">+ Add Template</button>
+    <button class="btn-sm" id="addTplBtn" onclick="document.getElementById('inlineAddTpl').style.display==='none'?showAddTemplateForm():hideAddTemplateForm()">+ Add Template</button>
     <button class="api-pill" onclick="openApiModal()">
       <span class="api-dot" id="apiDot"></span>
       <span id="apiLabel">Set API Key</span>
@@ -1127,15 +1127,19 @@ function showAddTemplateForm() {
   document.getElementById('tplFileStatus').textContent = 'Supports .docx, .txt — formatting preserved for .docx';
   const saveBtn = document.getElementById('saveTplBtn');
   if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Template'; }
+  const addBtn = document.getElementById('addTplBtn');
+  if (addBtn) addBtn.textContent = '✕ Close';
   document.getElementById('inlineAddTpl').style.display = 'block';
   setTimeout(() => {
-    document.getElementById('inlineAddTpl').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('tplName').scrollIntoView({ behavior: 'smooth', block: 'center' });
     document.getElementById('tplName').focus();
   }, 50);
 }
 
 function hideAddTemplateForm() {
   document.getElementById('inlineAddTpl').style.display = 'none';
+  const addBtn = document.getElementById('addTplBtn');
+  if (addBtn) addBtn.textContent = '+ Add Template';
   pendingTemplateText = '';
   pendingDocxBase64 = null;
   pendingParagraphs = null;
