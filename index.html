@@ -816,27 +816,6 @@ transition: width 0.4s ease;
 
 <!-- API Key Modal -->
 
-<div class="modal-overlay" id="addTplModal">
-  <div class="modal modal-wide">
-    <h2>Add Resume Template</h2>
-    <p>Give this version a name, then upload your resume file or paste the text. Claude will automatically pick the best template for each job.</p>
-    <span class="section-label">Template name</span>
-    <input type="text" id="tplName" placeholder="e.g. Software Engineer, Product Manager…" />
-    <span class="section-label">Upload resume file (.docx or .txt)</span>
-    <div class="upload-zone" id="tplUploadZone" ondragover="handleDrag(event,'tplUploadZone')" ondragleave="handleDragLeave('tplUploadZone')" ondrop="handleDrop(event,'template')" style="padding:1.25rem;margin-bottom:1rem">
-      <input type="file" id="tplFile" accept=".docx,.txt" onchange="handleTemplateFile(event)">
-      <span class="upload-icon" style="font-size:1.4rem">📄</span>
-      <p><strong>Drop file here</strong> or click to browse</p>
-      <p>Supports .docx, .txt</p>
-    </div>
-    <div class="or-divider">or paste text</div>
-    <textarea id="tplText" placeholder="Paste your resume content here…" rows="6"></textarea>
-    <div class="modal-actions">
-      <button class="btn-sm" id="saveTplBtn" onclick="saveNewTemplate()">Save Template</button>
-      <button class="btn-sm btn-cancel" onclick="hideAddTemplateForm()">Cancel</button>
-    </div>
-  </div>
-</div>
 
 <div class="modal-overlay" id="apiModal">
   <div class="modal">
@@ -864,6 +843,27 @@ transition: width 0.4s ease;
       <span id=”tplCount” style=”font-family:’DM Mono’,monospace;font-size:0.7rem;color:rgba(14,14,14,0.4)”>0 saved</span>
     </div>
     <div class=”card-body”>
+
+      <!-- Inline add template form — file input is NOT inside any modal/overlay (fixes iOS Safari) -->
+      <div id=”inlineAddTpl” style=”display:none”>
+        <div class=”add-tpl-form”>
+          <span class=”section-label”>Template name</span>
+          <input type=”text” id=”tplName” placeholder=”e.g. Software Engineer, Product Manager…” />
+          <span class=”section-label”>Upload resume file (.docx or .txt)</span>
+          <div class=”upload-zone” id=”tplUploadZone” ondragover=”handleDrag(event,'tplUploadZone')” ondragleave=”handleDragLeave('tplUploadZone')” ondrop=”handleDrop(event,'template')” style=”padding:1.25rem;margin-bottom:1rem”>
+            <input type=”file” id=”tplFile” accept=”.docx,.txt” onchange=”handleTemplateFile(event)”>
+            <span class=”upload-icon” style=”font-size:1.4rem”>📄</span>
+            <p><strong>Drop file here</strong> or click to browse</p>
+            <p id=”tplFileStatus”>Supports .docx, .txt — formatting preserved for .docx</p>
+          </div>
+          <div class=”or-divider”>or paste text</div>
+          <textarea id=”tplText” placeholder=”Paste your resume content here…” rows=”6”></textarea>
+          <div class=”modal-actions”>
+            <button class=”btn-sm” id=”saveTplBtn” onclick=”saveNewTemplate()”>Save Template</button>
+            <button class=”btn-sm btn-cancel” onclick=”hideAddTemplateForm()”>Cancel</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Template list -->
       <div class=”tpl-list” id=”tplList”></div>
@@ -1020,11 +1020,13 @@ Requirements:
 // ─── State ───────────────────────────────────────────────────────────────────
 let apiKey = '';
 let jdImageData = null; // base64
-let tailoredResumeText = '';
+let currentResult = null; // {selectedTpl, tailoredData} — set after successful forge
 let activeChips = new Set();
 let currentTab = 'paste';
-let savedTemplates = []; // [{id, name, content, addedAt}]
+let savedTemplates = []; // [{id, name, content, paragraphs, docxBase64, addedAt}]
 let pendingTemplateText = ''; // holds text while adding a new template
+let pendingDocxBase64 = null; // base64 of uploaded .docx while adding template
+let pendingParagraphs = null; // [{idx, text}] while adding template
 
 // ─── API Key ─────────────────────────────────────────────────────────────────
 function openApiModal() {
@@ -1077,7 +1079,10 @@ function persistTemplates() {
   try {
     localStorage.setItem('resumeTemplates', JSON.stringify(savedTemplates));
   } catch(e) {
-    // localStorage unavailable (private mode, storage restrictions) — in-memory only
+    if (e.name === 'QuotaExceededError') {
+      log('Warning: browser storage is full. Template saved for this session only.', 'error');
+    }
+    // otherwise localStorage unavailable (private mode) — in-memory only
   }
 }
 
@@ -1100,7 +1105,7 @@ function renderTemplateList() {
   list.innerHTML = savedTemplates.map(t => `
     <div class="tpl-item">
       <div class="tpl-item-main">
-        <div class="tpl-item-name">${escapeHtml(t.name)}</div>
+        <div class="tpl-item-name">${escapeHtml(t.name)}${t.docxBase64 ? ' <span style="font-family:\'DM Mono\',monospace;font-size:0.6rem;background:rgba(74,92,78,0.12);color:var(--sage);padding:0.1rem 0.4rem;border-radius:2px;vertical-align:middle">fmt preserved</span>' : ''}</div>
         <div class="tpl-item-preview">${escapeHtml(t.content.slice(0, 120).replace(/\n/g, ' '))}</div>
       </div>
       <button class="tpl-delete" onclick="deleteTemplate('${t.id}')" title="Remove">✕</button>
@@ -1114,23 +1119,27 @@ function escapeHtml(str) {
 
 function showAddTemplateForm() {
   pendingTemplateText = '';
+  pendingDocxBase64 = null;
+  pendingParagraphs = null;
   document.getElementById('tplText').value = '';
   document.getElementById('tplFile').value = '';
   document.getElementById('tplName').value = '';
+  document.getElementById('tplFileStatus').textContent = 'Supports .docx, .txt — formatting preserved for .docx';
   const saveBtn = document.getElementById('saveTplBtn');
   if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Template'; }
-  document.getElementById('addTplModal').classList.add('open');
-  setTimeout(() => document.getElementById('tplName').focus(), 50);
+  document.getElementById('inlineAddTpl').style.display = 'block';
+  setTimeout(() => {
+    document.getElementById('inlineAddTpl').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('tplName').focus();
+  }, 50);
 }
 
 function hideAddTemplateForm() {
-  document.getElementById('addTplModal').classList.remove('open');
+  document.getElementById('inlineAddTpl').style.display = 'none';
   pendingTemplateText = '';
+  pendingDocxBase64 = null;
+  pendingParagraphs = null;
 }
-
-document.getElementById('addTplModal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) hideAddTemplateForm();
-});
 
 async function handleTemplateFile(e) {
   const file = e.target.files[0];
@@ -1138,50 +1147,79 @@ async function handleTemplateFile(e) {
   if (!document.getElementById('tplName').value.trim()) {
     document.getElementById('tplName').value = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
   }
-  const zone = document.getElementById('tplUploadZone');
   const saveBtn = document.getElementById('saveTplBtn');
-  const statusP = zone.querySelector('p:last-child');
+  const statusP = document.getElementById('tplFileStatus');
   statusP.textContent = 'Reading file…';
+  pendingDocxBase64 = null;
+  pendingParagraphs = null;
+  pendingTemplateText = '';
   if (saveBtn) { saveBtn.textContent = 'Processing…'; saveBtn.disabled = true; }
   try {
-    const text = await readFileAsText(file);
-    pendingTemplateText = text;
-    document.getElementById('tplText').value = text;
-    statusP.textContent = text ? '✓ File read successfully' : 'Could not extract text — please paste below';
+    if (file.name.endsWith('.docx')) {
+      const { paragraphs, docxBase64 } = await extractDocxParagraphs(file);
+      pendingParagraphs = paragraphs;
+      pendingDocxBase64 = docxBase64;
+      pendingTemplateText = paragraphs.map(p => p.text).filter(t => t).join('\n');
+      document.getElementById('tplText').value = pendingTemplateText;
+      statusP.textContent = paragraphs.length > 0
+        ? `✓ Parsed ${paragraphs.length} paragraphs — formatting will be preserved`
+        : 'Could not extract text — please paste below';
+    } else {
+      const text = await readFileAsText(file);
+      pendingTemplateText = text;
+      document.getElementById('tplText').value = text;
+      statusP.textContent = text ? '✓ File read successfully' : 'Could not extract text — please paste below';
+    }
+  } catch(err) {
+    statusP.textContent = 'Error reading file — please paste text below';
   } finally {
     if (saveBtn) { saveBtn.textContent = 'Save Template'; saveBtn.disabled = false; }
   }
 }
 
-async function readFileAsText(file) {
-  if (file.name.endsWith('.docx')) {
-    return await extractDocxText(file);
+async function extractDocxParagraphs(file) {
+  if (typeof JSZip === 'undefined') throw new Error('JSZip not loaded');
+  // Read as ArrayBuffer so we can both parse and base64-encode
+  const buffer = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+  // Encode to base64
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  const docxBase64 = btoa(binary);
+  // Parse paragraphs from XML
+  const zip = await JSZip.loadAsync(buffer);
+  const xmlFile = zip.file('word/document.xml');
+  if (!xmlFile) return { paragraphs: [], docxBase64 };
+  const xml = await xmlFile.async('string');
+  const paragraphs = parseParagraphs(xml);
+  return { paragraphs, docxBase64 };
+}
+
+function parseParagraphs(xml) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'application/xml');
+  const pEls = doc.getElementsByTagNameNS('*', 'p');
+  const paragraphs = [];
+  for (let i = 0; i < pEls.length; i++) {
+    const tEls = pEls[i].getElementsByTagNameNS('*', 't');
+    let text = '';
+    for (let j = 0; j < tEls.length; j++) text += tEls[j].textContent;
+    paragraphs.push({ idx: i, text });
   }
+  return paragraphs;
+}
+
+async function readFileAsText(file) {
   return new Promise(resolve => {
     const reader = new FileReader();
     reader.onload = e => resolve(e.target.result);
     reader.readAsText(file);
   });
-}
-
-async function extractDocxText(file) {
-  try {
-    if (typeof JSZip === 'undefined') throw new Error('JSZip not loaded');
-    const zip = await JSZip.loadAsync(file);
-    const xmlFile = zip.file('word/document.xml');
-    if (!xmlFile) return '';
-    const xml = await xmlFile.async('string');
-    // Extract text runs, inserting spaces between paragraphs
-    const text = xml
-      .replace(/<w:p[ >]/g, '\n<w:p ')
-      .replace(/<w:t[^>]*>([^<]*)<\/w:t>/g, '$1')
-      .replace(/<[^>]+>/g, '')
-      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
-      .replace(/\n{3,}/g, '\n\n').trim();
-    return text;
-  } catch(e) {
-    return '';
-  }
 }
 
 function saveNewTemplate() {
@@ -1192,16 +1230,21 @@ function saveNewTemplate() {
     if (!name) { alert('Please give this template a name.'); return; }
     if (!content) { alert('Please upload a file or paste your resume content.'); return; }
 
+    const paragraphs = pendingParagraphs || content.split('\n').map((text, idx) => ({ idx, text }));
+    const docxBase64 = pendingDocxBase64 || null;
+
     const tpl = {
       id: Date.now().toString(),
       name,
       content,
+      paragraphs,
+      docxBase64,
       addedAt: new Date().toISOString()
     };
     savedTemplates.push(tpl);
     persistTemplates();
     hideAddTemplateForm();
-    setTimeout(renderTemplateList, 200); // let iOS restore background DOM after modal closes
+    renderTemplateList();
   } catch(e) {
     alert('Error saving template: ' + e.message);
   }
@@ -1230,10 +1273,27 @@ function handleDrop(e, type) {
     if (!document.getElementById('tplName').value.trim()) {
       document.getElementById('tplName').value = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
     }
-    readFileAsText(file).then(text => {
-      pendingTemplateText = text;
-      document.getElementById('tplText').value = text;
-    });
+    const statusP = document.getElementById('tplFileStatus');
+    if (file.name.endsWith('.docx')) {
+      if (statusP) statusP.textContent = 'Reading file…';
+      extractDocxParagraphs(file).then(({ paragraphs, docxBase64 }) => {
+        pendingParagraphs = paragraphs;
+        pendingDocxBase64 = docxBase64;
+        pendingTemplateText = paragraphs.map(p => p.text).filter(t => t).join('\n');
+        document.getElementById('tplText').value = pendingTemplateText;
+        if (statusP) statusP.textContent = paragraphs.length > 0
+          ? `✓ Parsed ${paragraphs.length} paragraphs — formatting will be preserved`
+          : 'Could not extract text — please paste below';
+      }).catch(() => {
+        if (statusP) statusP.textContent = 'Error reading file — please paste text below';
+      });
+    } else {
+      readFileAsText(file).then(text => {
+        pendingTemplateText = text;
+        document.getElementById('tplText').value = text;
+        if (statusP) statusP.textContent = text ? '✓ File read successfully' : 'Could not extract text — please paste below';
+      });
+    }
   } else if (type === 'image') {
     processImageFile(file);
   }
@@ -1294,6 +1354,164 @@ function setProgress(pct) {
   document.getElementById('progressBar').style.width = pct + '%';
 }
 
+// ─── Claude API helper ────────────────────────────────────────────────────────
+async function callClaude({ system, userContent, maxTokens = 4000 }) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: 'user', content: userContent }]
+    })
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error?.message || `HTTP ${response.status}`);
+  }
+  const data = await response.json();
+  return data.content.map(b => b.text || '').join('');
+}
+
+// ─── Phase 1: select best template ───────────────────────────────────────────
+async function selectBestTemplate(jdText, jdImageData) {
+  if (savedTemplates.length === 1) return savedTemplates[0];
+
+  const snippets = savedTemplates.map((t, i) =>
+    `TEMPLATE ${i + 1} — "${t.name}"\n${t.content.slice(0, 200)}`
+  ).join('\n\n---\n\n');
+
+  const userContent = [];
+  if (jdImageData) {
+    userContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: jdImageData } });
+    userContent.push({ type: 'text', text: 'Above is a screenshot of the job description.' });
+  }
+  userContent.push({ type: 'text', text: `My resume templates:\n\n${snippets}\n\n${jdText ? `Job description:\n${jdText}` : ''}` });
+
+  const raw = await callClaude({
+    system: 'You select the best resume template for a job description. Return ONLY: <TEMPLATE>[exact template name]</TEMPLATE>',
+    userContent,
+    maxTokens: 200
+  });
+
+  const m = raw.match(/<TEMPLATE>([\s\S]*?)<\/TEMPLATE>/);
+  const name = m ? m[1].trim() : null;
+  return savedTemplates.find(t => t.name.toLowerCase() === (name || '').toLowerCase()) || savedTemplates[0];
+}
+
+// ─── Phase 2A: tailor structured (DOCX round-trip) ───────────────────────────
+async function tailorAsStructured(tpl, jdText, jdImageData, focusInstructions, extraBlock) {
+  const paraJson = JSON.stringify(tpl.paragraphs);
+
+  const userContent = [];
+  if (jdImageData) {
+    userContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: jdImageData } });
+    userContent.push({ type: 'text', text: 'Above is a screenshot of the job description.' });
+  }
+  userContent.push({
+    type: 'text',
+    text: `My resume as a JSON paragraph array (${tpl.paragraphs.length} paragraphs):\n${paraJson}\n\n${jdText ? `Job description:\n<JOB_DESCRIPTION>\n${jdText}\n</JOB_DESCRIPTION>` : ''}${extraBlock}`
+  });
+
+  const raw = await callClaude({
+    system: `You are an expert resume writer. You receive a resume as a JSON paragraph array and a job description.
+Tailor the resume to match the job. Return EXACTLY this structure:
+<PARAGRAPHS>
+[{"idx":0,"text":"..."},{"idx":1,"text":"..."},...]
+</PARAGRAPHS>
+<CHANGES>
+[{"type":"modified","description":"..."},...]
+</CHANGES>
+
+CRITICAL RULES for PARAGRAPHS:
+- Return EXACTLY ${tpl.paragraphs.length} objects — same count as input.
+- Each object MUST have the same "idx" as the input.
+- Only change the "text" value. Never add or remove idx values.
+- If a paragraph should stay unchanged, copy its text verbatim.
+- If a paragraph should be blank, use "text": "".
+- Never fabricate experience or credentials.${focusInstructions}`,
+    userContent,
+    maxTokens: 4000
+  });
+
+  const parasMatch = raw.match(/<PARAGRAPHS>([\s\S]*?)<\/PARAGRAPHS>/);
+  if (!parasMatch) throw new Error('Could not parse structured response. Try again.');
+  let rawParas;
+  try { rawParas = JSON.parse(parasMatch[1].trim()); }
+  catch(e) { throw new Error('Invalid paragraph JSON in response. Try again.'); }
+
+  const paragraphMap = {};
+  rawParas.forEach(p => { if (typeof p.idx === 'number') paragraphMap[p.idx] = p.text ?? ''; });
+
+  const changesMatch = raw.match(/<CHANGES>([\s\S]*?)<\/CHANGES>/);
+  let changes = [];
+  if (changesMatch) {
+    try { changes = JSON.parse(changesMatch[1].trim()); }
+    catch(e) { changes = [{ type: 'modified', description: 'Resume tailored to match job description.' }]; }
+  }
+
+  // Build a plain text preview from the paragraph map
+  const previewText = tpl.paragraphs.map(p =>
+    Object.prototype.hasOwnProperty.call(paragraphMap, p.idx) ? paragraphMap[p.idx] : p.text
+  ).filter(t => t).join('\n');
+
+  return { paragraphMap, changes, previewText };
+}
+
+// ─── Phase 2B: tailor as plain text (fallback) ────────────────────────────────
+async function tailorAsPlainText(tpl, jdText, jdImageData, focusInstructions, extraBlock) {
+  const templateNames = savedTemplates.map(t => `"${t.name}"`).join(', ');
+
+  const userContent = [];
+  if (jdImageData) {
+    userContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: jdImageData } });
+    userContent.push({ type: 'text', text: 'Above is a screenshot of the job description.' });
+  }
+  userContent.push({
+    type: 'text',
+    text: `My resume template "${tpl.name}":\n\n${tpl.content}\n\n${jdText ? `Job description:\n<JOB_DESCRIPTION>\n${jdText}\n</JOB_DESCRIPTION>` : ''}${extraBlock}\n\nTailor this resume for this role.`
+  });
+
+  const raw = await callClaude({
+    system: `You are an expert resume writer. Tailor the provided resume template for the job description.
+1. Rewrite bullet points using language and keywords from the job description
+2. Reorder or emphasize experiences most relevant to this role
+3. Update the summary/objective to speak directly to this position
+4. Add relevant keywords naturally — no stuffing
+5. Quantify achievements where possible
+6. Keep all true facts — never invent experience${focusInstructions}
+
+Output format:
+<RESUME>
+[Full tailored resume text]
+</RESUME>
+<CHANGES>
+[{"type":"modified","description":"..."},{"type":"added","description":"..."},{"type":"keyword","description":"..."}]
+</CHANGES>`,
+    userContent,
+    maxTokens: 4000
+  });
+
+  const resumeMatch = raw.match(/<RESUME>([\s\S]*?)<\/RESUME>/);
+  if (!resumeMatch) throw new Error('Could not parse response. Try again.');
+  const text = resumeMatch[1].trim();
+
+  const changesMatch = raw.match(/<CHANGES>([\s\S]*?)<\/CHANGES>/);
+  let changes = [];
+  if (changesMatch) {
+    try { changes = JSON.parse(changesMatch[1].trim()); }
+    catch(e) { changes = [{ type: 'modified', description: 'Resume tailored to match job description.' }]; }
+  }
+
+  return { text, changes };
+}
+
 // ─── Main: Forge Resume ───────────────────────────────────────────────────────
 async function forgeResume() {
   if (!apiKey) {
@@ -1324,127 +1542,37 @@ async function forgeResume() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span><span>Forging…</span>';
   setProgress(10);
-
-  log(`Selecting best template from ${savedTemplates.length} saved…`);
+  currentResult = null;
 
   const focusInstructions = activeChips.size > 0
     ? `\nFocus especially on: ${[...activeChips].join(', ')}.`
     : '';
-
   const extraBlock = extra ? `\n\nAdditional instructions: ${extra}` : '';
 
-  // Build the template library block for the prompt
-  const templatesBlock = savedTemplates.map((t, i) =>
-    `TEMPLATE ${i + 1} — "${t.name}"\n${t.content}`
-  ).join('\n\n---\n\n');
-
-  const templateNames = savedTemplates.map(t => `"${t.name}"`).join(', ');
-
-  const systemPrompt = `You are an expert resume writer and career coach helping one specific person streamline their job applications.
-
-The user has saved ${savedTemplates.length} personal resume template${savedTemplates.length > 1 ? 's' : ''} — different versions of their resume, each optimized for a different type of role.
-
-STEP 1 — TEMPLATE SELECTION:
-Read the job description carefully, then select the single best-matching template from the user's library. Consider which template's experience emphasis, skills, and tone best fits the role.
-
-STEP 2 — TAILORING:
-Starting from the chosen template as the base, tailor it specifically for this job:
-1. Rewrite bullet points using language and keywords from the job description
-2. Reorder or emphasize experiences most relevant to this role
-3. Update the summary/objective to speak directly to this position
-4. Add relevant keywords naturally — no stuffing
-5. Quantify achievements where possible
-6. Keep all true facts — never invent experience${focusInstructions}
-
-Output format — return EXACTLY this structure:
-<TEMPLATE>[name of the chosen template — one of: ${templateNames}]</TEMPLATE>
-<TEMPLATE_REASON>[One sentence: why this template is the best fit for this role]</TEMPLATE_REASON>
-<RESUME>
-[Full tailored resume text]
-</RESUME>
-<CHANGES>
-[{"type":"modified","description":"..."},{"type":"added","description":"..."},{"type":"keyword","description":"..."}]
-</CHANGES>`;
-
-  // Build user message content
-  const userContent = [];
-
-  if (jdImageData) {
-    log('Including job description screenshot…');
-    userContent.push({
-      type: 'image',
-      source: { type: 'base64', media_type: 'image/png', data: jdImageData }
-    });
-    userContent.push({ type: 'text', text: 'Above is a screenshot of the job description.' });
-  }
-
-  userContent.push({
-    type: 'text',
-    text: `Here are my resume templates:
-
-${templatesBlock}
-
-${jdText ? `Here is the job description:\n\n<JOB_DESCRIPTION>\n${jdText}\n</JOB_DESCRIPTION>` : ''}${extraBlock}
-
-Select the best template and tailor it for this role.`
-  });
-
-  setProgress(25);
-  log('Sending to Claude API…');
-
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userContent }]
-      })
-    });
+    // Phase 1: select best template
+    log(`Selecting best template from ${savedTemplates.length} saved…`);
+    const selectedTpl = await selectBestTemplate(jdText, jdImageData);
+    log(`Template selected: ${selectedTpl.name}`, 'success');
+    setProgress(35);
 
-    setProgress(70);
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || `HTTP ${response.status}`);
+    // Phase 2: tailor
+    log('Tailoring resume with Claude…');
+    let tailoredData;
+    if (selectedTpl.docxBase64 && selectedTpl.paragraphs && selectedTpl.paragraphs.length > 0) {
+      log('Formatting preservation mode — modifying original DOCX structure…');
+      tailoredData = await tailorAsStructured(selectedTpl, jdText, jdImageData, focusInstructions, extraBlock);
+    } else {
+      tailoredData = await tailorAsPlainText(selectedTpl, jdText, jdImageData, focusInstructions, extraBlock);
     }
 
-    const data = await response.json();
-    const rawText = data.content.map(b => b.text || '').join('');
-
-    setProgress(85);
-    log('Response received. Parsing…');
-
-    // Parse response
-    const templateMatch = rawText.match(/<TEMPLATE>([\s\S]*?)<\/TEMPLATE>/);
-    const templateReasonMatch = rawText.match(/<TEMPLATE_REASON>([\s\S]*?)<\/TEMPLATE_REASON>/);
-    const resumeMatch = rawText.match(/<RESUME>([\s\S]*?)<\/RESUME>/);
-    const changesMatch = rawText.match(/<CHANGES>([\s\S]*?)<\/CHANGES>/);
-
-    if (!resumeMatch) throw new Error('Could not parse response. Try again.');
-
-    const selectedName = templateMatch ? templateMatch[1].trim() : null;
-    const templateReason = templateReasonMatch ? templateReasonMatch[1].trim() : '';
-    if (selectedName) log(`Template selected: ${selectedName}`, 'success');
-
-    tailoredResumeText = resumeMatch[1].trim();
-    setProgress(95);
+    setProgress(90);
     log('Resume tailored successfully!', 'success');
 
-    let changes = [];
-    if (changesMatch) {
-      try { changes = JSON.parse(changesMatch[1].trim()); }
-      catch(e) { changes = [{type:'modified', description:'Resume tailored to match job description.'}]; }
-    }
+    currentResult = { selectedTpl, tailoredData };
 
-    displayResults(tailoredResumeText, changes, selectedName, templateReason);
+    const previewText = tailoredData.previewText || tailoredData.text || '';
+    displayResults(previewText, tailoredData.changes, selectedTpl.name, '');
     setProgress(100);
 
   } catch (err) {
@@ -1493,16 +1621,95 @@ function displayResults(text, changes, selectedName, templateReason) {
   document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// ─── DOCX round-trip helpers ──────────────────────────────────────────────────
+function substituteParaText(xml, paragraphMap) {
+  const wNS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'application/xml');
+  const pEls = doc.getElementsByTagNameNS('*', 'p');
+
+  for (let i = 0; i < pEls.length; i++) {
+    if (!Object.prototype.hasOwnProperty.call(paragraphMap, i)) continue;
+    const newText = paragraphMap[i];
+    const pEl = pEls[i];
+
+    // Capture <w:rPr> from first run (if any)
+    const runs = pEl.getElementsByTagNameNS('*', 'r');
+    let firstRPr = null;
+    if (runs.length > 0) {
+      const rprEls = runs[0].getElementsByTagNameNS('*', 'rPr');
+      if (rprEls.length > 0) firstRPr = rprEls[0].cloneNode(true);
+    }
+
+    // Remove all existing runs from this paragraph
+    const runsToRemove = Array.from(pEl.getElementsByTagNameNS('*', 'r'));
+    runsToRemove.forEach(r => r.parentNode.removeChild(r));
+
+    // Create a new run with the new text
+    const newRun = doc.createElementNS(wNS, 'w:r');
+    if (firstRPr) newRun.appendChild(firstRPr);
+    const wt = doc.createElementNS(wNS, 'w:t');
+    if (newText && (/^\s/.test(newText) || /\s$/.test(newText))) {
+      wt.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+    }
+    wt.textContent = newText;
+    newRun.appendChild(wt);
+    pEl.appendChild(newRun);
+  }
+
+  return new XMLSerializer().serializeToString(doc);
+}
+
+async function repackDocxWithNewText(docxBase64, paragraphMap) {
+  // Decode base64 → ArrayBuffer
+  const binaryStr = atob(docxBase64);
+  const bytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+  const zip = await JSZip.loadAsync(bytes.buffer);
+  const xml = await zip.file('word/document.xml').async('string');
+  const newXml = substituteParaText(xml, paragraphMap);
+  zip.file('word/document.xml', newXml);
+
+  return zip.generateAsync({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  });
+}
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ─── Download .docx ───────────────────────────────────────────────────────────
 async function downloadDocx() {
-  if (!tailoredResumeText) return;
+  if (!currentResult) return;
 
   log('Generating Word document…');
 
   try {
+    const { selectedTpl, tailoredData } = currentResult;
+
+    // Round-trip path: preserve original DOCX formatting
+    if (selectedTpl.docxBase64 && tailoredData.paragraphMap) {
+      log('Applying changes to original template…');
+      const blob = await repackDocxWithNewText(selectedTpl.docxBase64, tailoredData.paragraphMap);
+      const safeName = selectedTpl.name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      triggerDownload(blob, `tailored-${safeName}.docx`);
+      log('Word document downloaded with original formatting preserved!', 'success');
+      return;
+    }
+
+    // Fallback path: regenerate DOCX from plain text
+    const resumeText = tailoredData.text || tailoredData.previewText || '';
     const { Document, Paragraph, TextRun, HeadingLevel, Packer, AlignmentType } = docx;
 
-    const lines = tailoredResumeText.split('\n');
+    const lines = resumeText.split('\n');
     const paragraphs = [];
 
     lines.forEach(line => {
@@ -1513,11 +1720,8 @@ async function downloadDocx() {
         return;
       }
 
-      // Detect headings: ALL CAPS lines or lines ending with a colon
       const isHeading = /^[A-Z][A-Z\s\/&]+$/.test(trimmed) && trimmed.length < 40;
-      // Detect bullet points
       const isBullet = trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*');
-      // Detect name line (first non-empty line that's short)
       const isName = paragraphs.filter(p => p.root).length < 2 && trimmed.length < 60 && !trimmed.includes('|') && !trimmed.includes('@');
 
       if (isName && paragraphs.length < 3) {
@@ -1541,7 +1745,6 @@ async function downloadDocx() {
           spacing: { after: 60 }
         }));
       } else if (trimmed.includes('|')) {
-        // Contact line
         paragraphs.push(new Paragraph({
           children: [new TextRun({ text: trimmed, size: 18, font: 'Calibri', color: '555555' })],
           alignment: AlignmentType.CENTER,
@@ -1557,30 +1760,14 @@ async function downloadDocx() {
 
     const doc = new Document({
       sections: [{
-        properties: {
-          page: {
-            margin: { top: 720, right: 900, bottom: 720, left: 900 }
-          }
-        },
+        properties: { page: { margin: { top: 720, right: 900, bottom: 720, left: 900 } } },
         children: paragraphs
       }],
-      styles: {
-        default: {
-          document: {
-            run: { font: 'Calibri', size: 20, color: '1a1a1a' }
-          }
-        }
-      }
+      styles: { default: { document: { run: { font: 'Calibri', size: 20, color: '1a1a1a' } } } }
     });
 
     const blob = await Packer.toBlob(doc);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'tailored-resume.docx';
-    a.click();
-    URL.revokeObjectURL(url);
-
+    triggerDownload(blob, 'tailored-resume.docx');
     log('Word document downloaded!', 'success');
 
   } catch(err) {
