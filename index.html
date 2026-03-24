@@ -746,10 +746,13 @@ transition: width 0.4s ease;
 
 <header>
   <div class="logo">Resume<span>Forge</span></div>
-  <button class="api-pill" onclick="openApiModal()">
-    <span class="api-dot" id="apiDot"></span>
-    <span id="apiLabel">Set API Key</span>
-  </button>
+  <div style="display:flex;align-items:center;gap:0.75rem">
+    <button class="btn-sm" id="addTplBtn" onclick="showAddTemplateForm()">+ Add Template</button>
+    <button class="api-pill" onclick="openApiModal()">
+      <span class="api-dot" id="apiDot"></span>
+      <span id="apiLabel">Set API Key</span>
+    </button>
+  </div>
 </header>
 
 <div class="hero">
@@ -777,10 +780,7 @@ transition: width 0.4s ease;
   <div class=”card fade-up” style=”grid-column: 1 / -1; animation-delay:0s”>
     <div class=”card-header”>
       <span class=”card-title”>00 — My Resume Templates</span>
-      <div style=”display:flex;align-items:center;gap:0.75rem”>
-        <span id=”tplCount” style=”font-family:’DM Mono’,monospace;font-size:0.7rem;color:rgba(14,14,14,0.4)”>0 saved</span>
-        <button class=”btn-sm” id=”addTplBtn” onclick=”showAddTemplateForm()”>+ Add Template</button>
-      </div>
+      <span id=”tplCount” style=”font-family:’DM Mono’,monospace;font-size:0.7rem;color:rgba(14,14,14,0.4)”>0 saved</span>
     </div>
     <div class=”card-body”>
 
@@ -1034,10 +1034,12 @@ function escapeHtml(str) {
 function showAddTemplateForm() {
   document.getElementById('addTplForm').style.display = 'block';
   document.getElementById('addTplBtn').style.display = 'none';
-  document.getElementById('tplName').focus();
   pendingTemplateText = '';
   document.getElementById('tplText').value = '';
   document.getElementById('tplFile').value = '';
+  document.getElementById('tplName').value = '';
+  document.getElementById('addTplForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setTimeout(() => document.getElementById('tplName').focus(), 400);
 }
 
 function hideAddTemplateForm() {
