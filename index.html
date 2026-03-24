@@ -1086,7 +1086,9 @@ function renderTemplateList() {
   const empty = document.getElementById('tplEmpty');
   const count = document.getElementById('tplCount');
 
-  count.textContent = savedTemplates.length === 1 ? '1 saved' : `${savedTemplates.length} saved`;
+  if (count) count.textContent = savedTemplates.length === 1 ? '1 saved' : `${savedTemplates.length} saved`;
+
+  if (!list || !empty) return;
 
   if (savedTemplates.length === 0) {
     list.innerHTML = '';
