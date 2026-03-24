@@ -1116,7 +1116,7 @@ function showAddTemplateForm() {
   document.getElementById('tplFile').value = '';
   document.getElementById('tplName').value = '';
   const saveBtn = document.getElementById('saveTplBtn');
-  if (saveBtn) saveBtn.disabled = false;
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Template'; }
   document.getElementById('addTplModal').classList.add('open');
   setTimeout(() => document.getElementById('tplName').focus(), 50);
 }
@@ -1140,14 +1140,14 @@ async function handleTemplateFile(e) {
   const saveBtn = document.getElementById('saveTplBtn');
   const statusP = zone.querySelector('p:last-child');
   statusP.textContent = 'Reading file…';
-  if (saveBtn) saveBtn.disabled = true;
+  if (saveBtn) { saveBtn.textContent = 'Processing…'; saveBtn.disabled = true; }
   try {
     const text = await readFileAsText(file);
     pendingTemplateText = text;
     document.getElementById('tplText').value = text;
     statusP.textContent = text ? '✓ File read successfully' : 'Could not extract text — please paste below';
   } finally {
-    if (saveBtn) saveBtn.disabled = false;
+    if (saveBtn) { saveBtn.textContent = 'Save Template'; saveBtn.disabled = false; }
   }
 }
 
@@ -1183,22 +1183,26 @@ async function extractDocxText(file) {
 }
 
 function saveNewTemplate() {
-  const name = document.getElementById('tplName').value.trim();
-  const content = document.getElementById('tplText').value.trim() || pendingTemplateText.trim();
+  try {
+    const name = document.getElementById('tplName').value.trim();
+    const content = document.getElementById('tplText').value.trim() || pendingTemplateText.trim();
 
-  if (!name) { alert('Please give this template a name.'); return; }
-  if (!content) { alert('Please upload a file or paste your resume content.'); return; }
+    if (!name) { alert('Please give this template a name.'); return; }
+    if (!content) { alert('Please upload a file or paste your resume content.'); return; }
 
-  const tpl = {
-    id: Date.now().toString(),
-    name,
-    content,
-    addedAt: new Date().toISOString()
-  };
-  savedTemplates.push(tpl);
-  persistTemplates();
-  renderTemplateList();
-  hideAddTemplateForm();
+    const tpl = {
+      id: Date.now().toString(),
+      name,
+      content,
+      addedAt: new Date().toISOString()
+    };
+    savedTemplates.push(tpl);
+    persistTemplates();
+    renderTemplateList();
+    hideAddTemplateForm();
+  } catch(e) {
+    alert('Error saving template: ' + e.message);
+  }
 }
 
 function deleteTemplate(id) {
