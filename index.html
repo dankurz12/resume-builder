@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -796,7 +797,7 @@ transition: width 0.4s ease;
 <body>
 
 <header>
-  <div class="logo">Resume<span>Forge</span></div>
+  <div class="logo" onclick="location.reload()" style="cursor:pointer">Resume<span>Forge</span></div>
   <div style="display:flex;align-items:center;gap:0.75rem">
     <button class="btn-sm" id="addTplBtn" onclick="showAddTemplateForm()">+ Add Template</button>
     <button class="api-pill" onclick="openApiModal()">
@@ -1122,39 +1123,45 @@ document.getElementById('addTplModal').addEventListener('click', e => {
   if (e.target === e.currentTarget) hideAddTemplateForm();
 });
 
-function handleTemplateFile(e) {
+async function handleTemplateFile(e) {
   const file = e.target.files[0];
   if (!file) return;
   if (!document.getElementById('tplName').value.trim()) {
-    // Auto-fill name from filename (strip extension)
     document.getElementById('tplName').value = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
   }
-  readFileAsText(file).then(text => {
-    pendingTemplateText = text;
-    document.getElementById('tplText').value = text;
-  });
+  const zone = document.getElementById('tplUploadZone');
+  zone.querySelector('p:last-child').textContent = 'Reading file…';
+  const text = await readFileAsText(file);
+  pendingTemplateText = text;
+  document.getElementById('tplText').value = text;
+  zone.querySelector('p:last-child').textContent = text ? '✓ File read successfully' : 'Could not extract text — please paste below';
 }
 
-function readFileAsText(file) {
+async function readFileAsText(file) {
+  if (file.name.endsWith('.docx')) {
+    return await extractDocxText(file);
+  }
   return new Promise(resolve => {
     const reader = new FileReader();
-    if (file.name.endsWith('.docx')) {
-      reader.onload = e => resolve(extractDocxText(e.target.result));
-      reader.readAsArrayBuffer(file);
-    } else {
-      reader.onload = e => resolve(e.target.result);
-      reader.readAsText(file);
-    }
+    reader.onload = e => resolve(e.target.result);
+    reader.readAsText(file);
   });
 }
 
-function extractDocxText(arrayBuffer) {
+async function extractDocxText(file) {
   try {
-    const arr = new Uint8Array(arrayBuffer);
-    const text = new TextDecoder('utf-8', {fatal: false}).decode(arr);
-    const matches = text.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
-    const extracted = matches.map(m => m.replace(/<[^>]+>/g, '')).join(' ');
-    return extracted.length > 50 ? extracted : '';
+    const zip = await JSZip.loadAsync(file);
+    const xmlFile = zip.file('word/document.xml');
+    if (!xmlFile) return '';
+    const xml = await xmlFile.async('string');
+    // Extract text runs, inserting spaces between paragraphs
+    const text = xml
+      .replace(/<w:p[ >]/g, '\n<w:p ')
+      .replace(/<w:t[^>]*>([^<]*)<\/w:t>/g, '$1')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+      .replace(/\n{3,}/g, '\n\n').trim();
+    return text;
   } catch(e) {
     return '';
   }
@@ -1199,13 +1206,12 @@ function handleDrop(e, type) {
   const file = e.dataTransfer.files[0];
   if (!file) return;
   if (type === 'template') {
-    document.getElementById('tplFile').files; // can't set files, handle manually
+    if (!document.getElementById('tplName').value.trim()) {
+      document.getElementById('tplName').value = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+    }
     readFileAsText(file).then(text => {
       pendingTemplateText = text;
       document.getElementById('tplText').value = text;
-      if (!document.getElementById('tplName').value.trim()) {
-        document.getElementById('tplName').value = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
-      }
     });
   } else if (type === 'image') {
     processImageFile(file);
