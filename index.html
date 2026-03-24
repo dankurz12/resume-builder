@@ -596,6 +596,44 @@ to { opacity: 1; transform: translateY(0); }
 }
 .fade-up { animation: fadeUp 0.5s ease forwards; }
 
+/* Template badge */
+.template-badge {
+display: inline-flex;
+align-items: center;
+gap: 0.5rem;
+background: rgba(74,92,78,0.1);
+border: 1px solid rgba(74,92,78,0.25);
+border-radius: 3px;
+padding: 0.45rem 0.85rem;
+font-family: 'DM Mono', monospace;
+font-size: 0.7rem;
+color: var(--sage);
+letter-spacing: 0.06em;
+}
+.template-badge strong { font-weight: 500; color: var(--ink); }
+
+.template-selected-row {
+display: none;
+align-items: flex-start;
+gap: 1rem;
+padding: 1rem 1.25rem;
+background: rgba(74,92,78,0.05);
+border-bottom: 1px solid rgba(74,92,78,0.12);
+font-size: 0.82rem;
+color: rgba(14,14,14,0.6);
+line-height: 1.5;
+}
+.template-selected-row.visible { display: flex; }
+.template-label {
+font-family: 'DM Mono', monospace;
+font-size: 0.65rem;
+letter-spacing: 0.1em;
+text-transform: uppercase;
+color: var(--sage);
+flex-shrink: 0;
+padding-top: 0.15rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
 header { padding: 1.25rem 1.5rem; }
@@ -800,6 +838,10 @@ Requirements:
 
 ```
 <div class="result-card" id="resultCard">
+  <div class="template-selected-row" id="templateRow">
+    <span class="template-label">Template</span>
+    <span id="templateInfo"></span>
+  </div>
   <div class="result-header">
     <h2>
       Resume Ready
@@ -829,6 +871,151 @@ Requirements:
 </div>
 
 <script>
+// ─── Resume Template Repository ───────────────────────────────────────────────
+const RESUME_TEMPLATES = [
+  {
+    id: 'tech-engineer',
+    name: 'Software / Engineering',
+    description: 'Best for software engineers, developers, DevOps, data scientists, and technical roles. Leads with a skills section, highlights projects and tech stack.',
+    structure: `[Name]
+[Email] | [Phone] | [LinkedIn] | [GitHub]
+
+TECHNICAL SKILLS
+Languages: ...
+Frameworks & Tools: ...
+Cloud & DevOps: ...
+
+EXPERIENCE
+[Job Title] — [Company] ([Dates])
+• Built/Architected/Led... [technical achievement with metrics]
+• Improved/Reduced/Scaled... [performance/efficiency impact]
+
+PROJECTS
+[Project Name] | [Tech Stack]
+• [What it does and measurable impact]
+
+EDUCATION
+[Degree], [Major] — [University] ([Year])`
+  },
+  {
+    id: 'business-exec',
+    name: 'Business / Management',
+    description: 'Best for managers, directors, VPs, operations, and business leadership roles. Leads with impact metrics, team leadership, and strategic initiatives.',
+    structure: `[Name]
+[Email] | [Phone] | [LinkedIn] | [Location]
+
+EXECUTIVE SUMMARY
+Results-driven [title] with X years leading...
+
+EXPERIENCE
+[Job Title] — [Company] ([Dates])
+• Led team of X, delivering [business outcome] worth $[value]
+• Drove [strategic initiative] resulting in [measurable impact]
+• Managed $[budget] budget across [scope]
+
+CORE COMPETENCIES
+Strategic Planning | P&L Management | Team Leadership | ...
+
+EDUCATION
+[Degree] — [University] ([Year])`
+  },
+  {
+    id: 'creative',
+    name: 'Creative / Marketing',
+    description: 'Best for marketing, design, content, brand, and creative roles. Highlights campaigns, creative output, and audience/engagement metrics.',
+    structure: `[Name]
+[Email] | [Portfolio URL] | [LinkedIn]
+
+PROFILE
+Creative [title] specializing in...
+
+EXPERIENCE
+[Job Title] — [Company] ([Dates])
+• Conceptualized and executed [campaign/project] reaching [audience size]
+• Grew [metric] by X% through [creative strategy]
+• Collaborated with [teams] to produce [deliverables]
+
+SKILLS
+Design: ...
+Marketing Tools: ...
+Content: ...
+
+EDUCATION
+[Degree] — [University] ([Year])`
+  },
+  {
+    id: 'finance',
+    name: 'Finance / Consulting',
+    description: 'Best for finance, banking, consulting, accounting, and analytical roles. Emphasizes deal experience, financial modeling, and quantitative impact.',
+    structure: `[Name]
+[Email] | [Phone] | [LinkedIn] | [Location]
+
+EXPERIENCE
+[Job Title] — [Firm] ([Dates])
+• Advised [clients] on [transaction/project] totaling $[value]
+• Built financial models for [purpose], improving [outcome]
+• Conducted due diligence on [X] deals across [sectors]
+
+EDUCATION
+[Degree], [Major] — [University] ([Year])
+GPA: X.X | [Relevant Honors]
+
+CERTIFICATIONS
+CFA Level X | CPA | ...
+
+SKILLS
+Financial Modeling | Valuation | Bloomberg | Excel/VBA | SQL`
+  },
+  {
+    id: 'healthcare',
+    name: 'Healthcare / Clinical',
+    description: 'Best for clinical, nursing, medical, pharmacy, and allied health roles. Highlights patient care, certifications, clinical skills, and compliance.',
+    structure: `[Name], [Credentials]
+[Email] | [Phone] | [License #] | [Location]
+
+CLINICAL EXPERIENCE
+[Role] — [Facility] ([Dates])
+• Provided [type of care] to [patient population] in [setting]
+• Managed [conditions/procedures], improving [patient outcomes]
+• Collaborated with interdisciplinary team to [outcome]
+
+CERTIFICATIONS & LICENSES
+[State] RN License #... | BLS | ACLS | ...
+
+CLINICAL SKILLS
+[Specialty skills, equipment, procedures]
+
+EDUCATION
+[Degree] — [School] ([Year])`
+  },
+  {
+    id: 'academic',
+    name: 'Academic / Research',
+    description: 'Best for research, PhD, postdoc, faculty, and scientific roles. Leads with publications, grants, and research experience.',
+    structure: `[Name], [Ph.D./M.D./etc.]
+[Email] | [Institution] | [Lab/Department URL]
+
+RESEARCH INTERESTS
+[2-3 sentence description of research focus]
+
+EDUCATION
+Ph.D., [Field] — [University] ([Year])
+Dissertation: "[Title]"
+
+ACADEMIC APPOINTMENTS
+[Title] — [Institution] ([Dates])
+
+PUBLICATIONS
+[Author list]. ([Year]). [Title]. [Journal], [vol]([issue]).
+
+GRANTS & FUNDING
+[Grant Name] — [Agency] ($[amount], [Year])
+
+TEACHING
+[Course] — [Institution] ([Semester])`
+  }
+];
+
 // ─── State ───────────────────────────────────────────────────────────────────
 let apiKey = '';
 let resumeFileData = null; // ArrayBuffer for docx
@@ -837,6 +1024,7 @@ let jdImageData = null; // base64
 let tailoredResumeText = '';
 let activeChips = new Set();
 let currentTab = 'paste';
+let selectedTemplateId = null;
 
 // ─── API Key ─────────────────────────────────────────────────────────────────
 function openApiModal() {
@@ -1035,24 +1223,40 @@ async function forgeResume() {
 
   const extraBlock = extra ? `\n\nAdditional instructions from the user: ${extra}` : '';
 
-  const systemPrompt = `You are an expert resume writer and career coach. Your job is to tailor a resume to a specific job description.
+  // Build template repository section for the prompt
+  const templatesBlock = RESUME_TEMPLATES.map(t =>
+    `TEMPLATE ID: ${t.id}\nNAME: ${t.name}\nBEST FOR: ${t.description}\nSTRUCTURE:\n${t.structure}`
+  ).join('\n\n---\n\n');
 
-When tailoring:
-1. Rewrite bullet points to use language and keywords from the job description
-2. Reorder experiences to highlight the most relevant first
-3. Update the summary/objective to match the role
-4. Add relevant keywords naturally without keyword stuffing
-5. Quantify achievements where possible
-6. Keep the same overall structure and all true facts — never invent experience
-7. Return ONLY the tailored resume text, followed by a JSON block
+  const systemPrompt = `You are an expert resume writer and career coach. Your job is to tailor a resume to a specific job description using the best-fit template from a curated repository.
 
-Output format — return EXACTLY this structure:
+STEP 1 — TEMPLATE SELECTION:
+Review the job description and select the most appropriate template from the repository below. Consider the industry, role level, and required skills.
+
+TEMPLATE REPOSITORY:
+${templatesBlock}
+
+STEP 2 — RESUME TAILORING:
+Using the selected template's structure and style as the foundation, rewrite the user's resume content to match the job description:
+1. Adopt the section order and emphasis style of the chosen template
+2. Rewrite bullet points to use language and keywords from the job description
+3. Reorder experiences to highlight the most relevant first
+4. Update the summary/objective to match the role
+5. Add relevant keywords naturally without keyword stuffing
+6. Quantify achievements where possible
+7. Keep all true facts — never invent experience
+
+Output format — return EXACTLY this structure (replace placeholders with actual content):
+<TEMPLATE>[chosen template id — one of: ${RESUME_TEMPLATES.map(t => t.id).join(', ')}]</TEMPLATE>
+<TEMPLATE_REASON>[One sentence explaining why this template fits the role]</TEMPLATE_REASON>
 <RESUME>
 [Full tailored resume text here]
 </RESUME>
 <CHANGES>
 [{"type":"modified","description":"..."},{"type":"added","description":"..."},{"type":"keyword","description":"..."}]
-</CHANGES>`;
+</CHANGES>
+
+For the <TEMPLATE> tag, output ONLY the template id (e.g. tech-engineer), nothing else.`;
 
   // Build user message content
   const userContent = [];
@@ -1113,12 +1317,22 @@ Please tailor my resume for this role. Return the full tailored resume wrapped i
     setProgress(85);
     log('Response received. Parsing…');
 
-    // Extract resume and changes
+    // Extract template selection, resume, and changes
+    const templateMatch = rawText.match(/<TEMPLATE>([\s\S]*?)<\/TEMPLATE>/);
+    const templateReasonMatch = rawText.match(/<TEMPLATE_REASON>([\s\S]*?)<\/TEMPLATE_REASON>/);
     const resumeMatch = rawText.match(/<RESUME>([\s\S]*?)<\/RESUME>/);
     const changesMatch = rawText.match(/<CHANGES>([\s\S]*?)<\/CHANGES>/);
 
     if (!resumeMatch) {
       throw new Error('Could not parse response. Try again.');
+    }
+
+    // Identify selected template
+    selectedTemplateId = templateMatch ? templateMatch[1].trim() : null;
+    const selectedTemplate = RESUME_TEMPLATES.find(t => t.id === selectedTemplateId) || null;
+    const templateReason = templateReasonMatch ? templateReasonMatch[1].trim() : '';
+    if (selectedTemplate) {
+      log(`Template selected: ${selectedTemplate.name}`, 'success');
     }
 
     tailoredResumeText = resumeMatch[1].trim();
@@ -1136,7 +1350,7 @@ Please tailor my resume for this role. Return the full tailored resume wrapped i
     }
 
     // Show results
-    displayResults(tailoredResumeText, changes);
+    displayResults(tailoredResumeText, changes, selectedTemplate, templateReason);
     setProgress(100);
 
   } catch (err) {
@@ -1149,9 +1363,19 @@ Please tailor my resume for this role. Return the full tailored resume wrapped i
 }
 
 // ─── Display Results ──────────────────────────────────────────────────────────
-function displayResults(text, changes) {
+function displayResults(text, changes, template, templateReason) {
   document.getElementById('resultCard').classList.add('visible');
   document.getElementById('resumePreview').textContent = text;
+
+  // Show selected template
+  const templateRow = document.getElementById('templateRow');
+  const templateInfo = document.getElementById('templateInfo');
+  if (template) {
+    templateInfo.innerHTML = `<strong>${template.name}</strong> template — ${templateReason || template.description}`;
+    templateRow.classList.add('visible');
+  } else {
+    templateRow.classList.remove('visible');
+  }
 
   const list = document.getElementById('changesList');
   list.innerHTML = '';
