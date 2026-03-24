@@ -1005,6 +1005,9 @@ Requirements:
         <button class="btn-download" id="downloadBtn" onclick="downloadDocx()">
           ↓ Download .docx
         </button>
+        <p id="iosTip" style="display:none;font-family:'DM Mono',monospace;font-size:0.72rem;color:rgba(14,14,14,0.55);margin-top:0.6rem;text-align:center">
+          File opened in new tab &mdash; tap the Share icon (&uarr;) then <strong>Open in Word</strong> or <strong>Save to Files</strong>
+        </p>
       </div>
 
       <div class="tabs">
@@ -1027,6 +1030,7 @@ Requirements:
 // ─── State ───────────────────────────────────────────────────────────────────
 let apiKey = '';
 let jdImageData = null; // base64
+let jdImageMediaType = 'image/jpeg'; // actual media type of uploaded image
 let currentResult = null; // {selectedTpl, tailoredData} — set after successful forge
 let activeChips = new Set();
 let currentTab = 'paste';
@@ -1371,6 +1375,7 @@ function handleDrop(e, type) {
 function handleImageFile(e) { processImageFile(e.target.files[0]); }
 
 function processImageFile(file) {
+  jdImageMediaType = file.type || 'image/jpeg';
   const reader = new FileReader();
   reader.onload = e => {
     jdImageData = e.target.result.split(',')[1]; // base64
@@ -1382,6 +1387,7 @@ function processImageFile(file) {
 
 function clearImage() {
   jdImageData = null;
+  jdImageMediaType = 'image/jpeg';
   document.getElementById('imgPreview').style.display = 'none';
   document.getElementById('jdImage').value = '';
 }
@@ -1458,7 +1464,7 @@ async function selectBestTemplate(jdText, jdImageData) {
 
   const userContent = [];
   if (jdImageData) {
-    userContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: jdImageData } });
+    userContent.push({ type: 'image', source: { type: 'base64', media_type: jdImageMediaType, data: jdImageData } });
     userContent.push({ type: 'text', text: 'Above is a screenshot of the job description.' });
   }
   userContent.push({ type: 'text', text: `My resume templates:\n\n${snippets}\n\n${jdText ? `Job description:\n${jdText}` : ''}` });
@@ -1480,7 +1486,7 @@ async function tailorAsStructured(tpl, jdText, jdImageData, focusInstructions, e
 
   const userContent = [];
   if (jdImageData) {
-    userContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: jdImageData } });
+    userContent.push({ type: 'image', source: { type: 'base64', media_type: jdImageMediaType, data: jdImageData } });
     userContent.push({ type: 'text', text: 'Above is a screenshot of the job description.' });
   }
   userContent.push({
@@ -1539,7 +1545,7 @@ async function tailorAsPlainText(tpl, jdText, jdImageData, focusInstructions, ex
 
   const userContent = [];
   if (jdImageData) {
-    userContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: jdImageData } });
+    userContent.push({ type: 'image', source: { type: 'base64', media_type: jdImageMediaType, data: jdImageData } });
     userContent.push({ type: 'text', text: 'Above is a screenshot of the job description.' });
   }
   userContent.push({
@@ -1748,11 +1754,21 @@ async function repackDocxWithNewText(docxBase64, paragraphMap) {
 
 function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  const isIOS = /ipad|iphone|ipod/i.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isIOS) {
+    window.open(url, '_blank');
+    const tip = document.getElementById('iosTip');
+    if (tip) tip.style.display = 'block';
+    // Don't revoke immediately — the new tab needs time to read the blob
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } else {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 }
 
 // ─── Download .docx ───────────────────────────────────────────────────────────
