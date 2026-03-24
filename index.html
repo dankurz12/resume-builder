@@ -99,9 +99,11 @@ transition: background 0.3s;
 
 /* Hero */
 .hero {
-padding: 5rem 3rem 3rem;
+padding: 5rem 3rem 4rem;
 max-width: 1200px;
 margin: 0 auto;
+border-bottom: 1px solid rgba(14,14,14,0.08);
+margin-bottom: 0;
 }
 
 .hero-eyebrow {
@@ -141,11 +143,34 @@ font-weight: 300;
 .workspace {
 max-width: 1200px;
 margin: 0 auto;
-padding: 2rem 3rem 5rem;
+padding: 3rem 3rem 6rem;
 display: grid;
 grid-template-columns: 1fr 1fr;
-gap: 2rem;
+column-gap: 2rem;
+row-gap: 3rem;
 align-items: start;
+}
+
+/* Section row separator */
+.section-row {
+grid-column: 1 / -1;
+display: flex;
+align-items: center;
+gap: 1.25rem;
+margin-bottom: -1.5rem;
+}
+.section-row-label {
+font-family: 'DM Mono', monospace;
+font-size: 0.68rem;
+letter-spacing: 0.18em;
+text-transform: uppercase;
+color: rgba(14,14,14,0.35);
+white-space: nowrap;
+}
+.section-row-line {
+flex: 1;
+height: 1px;
+background: rgba(14,14,14,0.1);
 }
 
 /* Cards */
@@ -387,6 +412,32 @@ font-size: 0.75rem !important;
 color: rgba(14,14,14,0.4) !important;
 margin-top: 0.75rem !important;
 font-family: ‘DM Mono’, monospace;
+}
+
+.modal-wide {
+max-width: 560px;
+}
+
+.modal-wide .upload-zone {
+padding: 1.25rem;
+margin-bottom: 1rem;
+}
+
+.modal-actions {
+display: flex;
+gap: 0.5rem;
+margin-top: 1.25rem;
+}
+
+.modal-actions .btn-sm {
+flex: 1;
+padding: 0.75rem;
+text-align: center;
+}
+
+.btn-cancel {
+background: rgba(14,14,14,0.08) !important;
+color: var(--ink) !important;
 }
 
 /* Big action button */
@@ -763,6 +814,28 @@ transition: width 0.4s ease;
 
 <!-- API Key Modal -->
 
+<div class="modal-overlay" id="addTplModal">
+  <div class="modal modal-wide">
+    <h2>Add Resume Template</h2>
+    <p>Give this version a name, then upload your resume file or paste the text. Claude will automatically pick the best template for each job.</p>
+    <span class="section-label">Template name</span>
+    <input type="text" id="tplName" placeholder="e.g. Software Engineer, Product Manager…" />
+    <span class="section-label">Upload resume file (.docx or .txt)</span>
+    <div class="upload-zone" id="tplUploadZone" ondragover="handleDrag(event,'tplUploadZone')" ondragleave="handleDragLeave('tplUploadZone')" ondrop="handleDrop(event,'template')" style="padding:1.25rem;margin-bottom:1rem">
+      <input type="file" id="tplFile" accept=".docx,.txt" onchange="handleTemplateFile(event)">
+      <span class="upload-icon" style="font-size:1.4rem">📄</span>
+      <p><strong>Drop file here</strong> or click to browse</p>
+      <p>Supports .docx, .txt</p>
+    </div>
+    <div class="or-divider">or paste text</div>
+    <textarea id="tplText" placeholder="Paste your resume content here…" rows="6"></textarea>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="saveNewTemplate()">Save Template</button>
+      <button class="btn-sm btn-cancel" onclick="hideAddTemplateForm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="apiModal">
   <div class="modal">
     <h2>API Key</h2>
@@ -775,6 +848,12 @@ transition: width 0.4s ease;
 
 <div class=”workspace”>
 
+  <!-- Section divider -->
+  <div class=”section-row”>
+    <span class=”section-row-label”>Step 1 — Your Resumes</span>
+    <span class=”section-row-line”></span>
+  </div>
+
   <!-- Template Library: full width -->
 
   <div class=”card fade-up” style=”grid-column: 1 / -1; animation-delay:0s”>
@@ -784,34 +863,21 @@ transition: width 0.4s ease;
     </div>
     <div class=”card-body”>
 
-      <!-- Add template form (hidden by default) -->
-      <div class=”add-tpl-form” id=”addTplForm” style=”display:none”>
-        <span class=”section-label”>Template name</span>
-        <input type=”text” id=”tplName” placeholder=”e.g. Software Engineer, Product Manager, Data Scientist…” />
-        <span class=”section-label”>Upload resume file (.docx or .txt)</span>
-        <div class=”upload-zone” id=”tplUploadZone” ondragover=”handleDrag(event,’tplUploadZone’)” ondragleave=”handleDragLeave(‘tplUploadZone’)” ondrop=”handleDrop(event,’template’)” style=”padding:1.25rem;margin-bottom:1rem”>
-          <input type=”file” id=”tplFile” accept=”.docx,.txt” onchange=”handleTemplateFile(event)”>
-          <span class=”upload-icon” style=”font-size:1.4rem”>📄</span>
-          <p><strong>Drop file here</strong> or click to browse</p>
-          <p>Supports .docx, .txt</p>
-        </div>
-        <div class=”or-divider”>or paste text</div>
-        <textarea id=”tplText” placeholder=”Paste your resume content here…” rows=”7”></textarea>
-        <div style=”display:flex;gap:0.5rem;margin-top:0.9rem”>
-          <button class=”btn-sm” onclick=”saveNewTemplate()”>Save Template</button>
-          <button class=”btn-sm” onclick=”hideAddTemplateForm()” style=”background:rgba(14,14,14,0.1);color:var(--ink)”>Cancel</button>
-        </div>
-      </div>
-
       <!-- Template list -->
       <div class=”tpl-list” id=”tplList”></div>
 
       <!-- Empty state -->
       <div class=”tpl-empty” id=”tplEmpty”>
-        <p>No templates saved yet.<br>Add your resume versions above — Claude will automatically pick the best one for each job description.</p>
+        <p>No templates saved yet.<br>Click <strong>+ Add Template</strong> above — Claude will automatically pick the best one for each job.</p>
       </div>
 
     </div>
+  </div>
+
+  <!-- Section divider -->
+  <div class=”section-row”>
+    <span class=”section-row-label”>Step 2 — Tailor</span>
+    <span class=”section-row-line”></span>
   </div>
 
   <!-- Left: Job Description -->
@@ -886,6 +952,12 @@ Requirements:
     </div>
   </div>
 
+  <!-- Section divider -->
+  <div class="section-row">
+    <span class="section-row-label">Step 3 — Forge</span>
+    <span class="section-row-line"></span>
+  </div>
+
   <!-- Action button spanning both cols -->
 
   <div style="grid-column: 1 / -1; padding: 0 0 0.5rem">
@@ -898,6 +970,10 @@ Requirements:
   <!-- Output panel -->
 
   <div class="output-panel" id="outputPanel">
+    <div class="section-row" style="margin-bottom:1.5rem">
+      <span class="section-row-label">Output</span>
+      <span class="section-row-line"></span>
+    </div>
     <div class="card">
       <div class="card-header">
         <span class="card-title">Activity Log</span>
@@ -907,36 +983,33 @@ Requirements:
       </div>
     </div>
 
-```
-<div class="result-card" id="resultCard">
-  <div class="template-selected-row" id="templateRow">
-    <span class="template-label">Template</span>
-    <span id="templateInfo"></span>
-  </div>
-  <div class="result-header">
-    <h2>
-      Resume Ready
-      <small>Tailored · Download below</small>
-    </h2>
-    <button class="btn-download" id="downloadBtn" onclick="downloadDocx()">
-      ↓ Download .docx
-    </button>
-  </div>
+    <div class="result-card" id="resultCard">
+      <div class="template-selected-row" id="templateRow">
+        <span class="template-label">Template</span>
+        <span id="templateInfo"></span>
+      </div>
+      <div class="result-header">
+        <h2>
+          Resume Ready
+          <small>Tailored · Download below</small>
+        </h2>
+        <button class="btn-download" id="downloadBtn" onclick="downloadDocx()">
+          ↓ Download .docx
+        </button>
+      </div>
 
-  <div class="tabs">
-    <div class="tab active" onclick="switchResultTab('changes')">What Changed</div>
-    <div class="tab" onclick="switchResultTab('preview')">Text Preview</div>
-  </div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchResultTab('changes')">What Changed</div>
+        <div class="tab" onclick="switchResultTab('preview')">Text Preview</div>
+      </div>
 
-  <div class="tab-content active" id="result-tab-changes">
-    <div class="changes-list" id="changesList"></div>
-  </div>
-  <div class="tab-content" id="result-tab-preview">
-    <div class="resume-preview" id="resumePreview"></div>
-  </div>
-</div>
-```
-
+      <div class="tab-content active" id="result-tab-changes">
+        <div class="changes-list" id="changesList"></div>
+      </div>
+      <div class="tab-content" id="result-tab-preview">
+        <div class="resume-preview" id="resumePreview"></div>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -1032,21 +1105,22 @@ function escapeHtml(str) {
 }
 
 function showAddTemplateForm() {
-  document.getElementById('addTplForm').style.display = 'block';
-  document.getElementById('addTplBtn').style.display = 'none';
   pendingTemplateText = '';
   document.getElementById('tplText').value = '';
   document.getElementById('tplFile').value = '';
   document.getElementById('tplName').value = '';
-  document.getElementById('addTplForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  setTimeout(() => document.getElementById('tplName').focus(), 400);
+  document.getElementById('addTplModal').classList.add('open');
+  setTimeout(() => document.getElementById('tplName').focus(), 50);
 }
 
 function hideAddTemplateForm() {
-  document.getElementById('addTplForm').style.display = 'none';
-  document.getElementById('addTplBtn').style.display = '';
+  document.getElementById('addTplModal').classList.remove('open');
   pendingTemplateText = '';
 }
+
+document.getElementById('addTplModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) hideAddTemplateForm();
+});
 
 function handleTemplateFile(e) {
   const file = e.target.files[0];
