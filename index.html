@@ -1074,7 +1074,11 @@ function loadTemplates() {
 }
 
 function persistTemplates() {
-  localStorage.setItem('resumeTemplates', JSON.stringify(savedTemplates));
+  try {
+    localStorage.setItem('resumeTemplates', JSON.stringify(savedTemplates));
+  } catch(e) {
+    // localStorage unavailable (private mode, storage restrictions) — in-memory only
+  }
 }
 
 function renderTemplateList() {
@@ -1111,6 +1115,8 @@ function showAddTemplateForm() {
   document.getElementById('tplText').value = '';
   document.getElementById('tplFile').value = '';
   document.getElementById('tplName').value = '';
+  const saveBtn = document.getElementById('saveTplBtn');
+  if (saveBtn) saveBtn.disabled = false;
   document.getElementById('addTplModal').classList.add('open');
   setTimeout(() => document.getElementById('tplName').focus(), 50);
 }
@@ -1135,11 +1141,14 @@ async function handleTemplateFile(e) {
   const statusP = zone.querySelector('p:last-child');
   statusP.textContent = 'Reading file…';
   if (saveBtn) saveBtn.disabled = true;
-  const text = await readFileAsText(file);
-  pendingTemplateText = text;
-  document.getElementById('tplText').value = text;
-  if (saveBtn) saveBtn.disabled = false;
-  statusP.textContent = text ? '✓ File read successfully' : 'Could not extract text — please paste below';
+  try {
+    const text = await readFileAsText(file);
+    pendingTemplateText = text;
+    document.getElementById('tplText').value = text;
+    statusP.textContent = text ? '✓ File read successfully' : 'Could not extract text — please paste below';
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+  }
 }
 
 async function readFileAsText(file) {
