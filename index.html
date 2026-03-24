@@ -831,7 +831,7 @@ transition: width 0.4s ease;
     <div class="or-divider">or paste text</div>
     <textarea id="tplText" placeholder="Paste your resume content here…" rows="6"></textarea>
     <div class="modal-actions">
-      <button class="btn-sm" onclick="saveNewTemplate()">Save Template</button>
+      <button class="btn-sm" id="saveTplBtn" onclick="saveNewTemplate()">Save Template</button>
       <button class="btn-sm btn-cancel" onclick="hideAddTemplateForm()">Cancel</button>
     </div>
   </div>
@@ -1130,11 +1130,15 @@ async function handleTemplateFile(e) {
     document.getElementById('tplName').value = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
   }
   const zone = document.getElementById('tplUploadZone');
-  zone.querySelector('p:last-child').textContent = 'Reading file…';
+  const saveBtn = document.getElementById('saveTplBtn');
+  const statusP = zone.querySelector('p:last-child');
+  statusP.textContent = 'Reading file…';
+  if (saveBtn) saveBtn.disabled = true;
   const text = await readFileAsText(file);
   pendingTemplateText = text;
   document.getElementById('tplText').value = text;
-  zone.querySelector('p:last-child').textContent = text ? '✓ File read successfully' : 'Could not extract text — please paste below';
+  if (saveBtn) saveBtn.disabled = false;
+  statusP.textContent = text ? '✓ File read successfully' : 'Could not extract text — please paste below';
 }
 
 async function readFileAsText(file) {
@@ -1150,6 +1154,7 @@ async function readFileAsText(file) {
 
 async function extractDocxText(file) {
   try {
+    if (typeof JSZip === 'undefined') throw new Error('JSZip not loaded');
     const zip = await JSZip.loadAsync(file);
     const xmlFile = zip.file('word/document.xml');
     if (!xmlFile) return '';
