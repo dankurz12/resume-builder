@@ -856,6 +856,13 @@ transition: width 0.4s ease;
             <p><strong>Drop file here</strong> or click to browse</p>
             <p id=”tplFileStatus”>Supports .docx, .txt — formatting preserved for .docx</p>
           </div>
+          <div class=”or-divider”>or import from Google Doc</div>
+          <div style=”display:flex;gap:0.5rem;margin-bottom:0.75rem”>
+            <input type=”text” id=”gdocUrl” placeholder=”Paste Google Doc link…”
+              style=”flex:1;border:1px solid rgba(14,14,14,0.15);border-radius:3px;padding:0.65rem 0.9rem;font-family:'DM Sans',sans-serif;font-size:0.88rem;background:var(--white);outline:none;” />
+            <button class=”btn-sm” onclick=”fetchGoogleDoc()”>Fetch</button>
+          </div>
+          <p id=”gdocStatus” style=”font-family:'DM Mono',monospace;font-size:0.72rem;color:rgba(14,14,14,0.5);margin-top:-0.25rem;margin-bottom:0.75rem;display:none”></p>
           <div class=”or-divider”>or paste text</div>
           <textarea id=”tplText” placeholder=”Paste your resume content here…” rows=”6”></textarea>
           <div class=”modal-actions”>
@@ -998,6 +1005,9 @@ Requirements:
         <button class="btn-download" id="downloadBtn" onclick="downloadDocx()">
           ↓ Download .docx
         </button>
+        <p id="iosTip" style="display:none;font-family:'DM Mono',monospace;font-size:0.72rem;color:rgba(14,14,14,0.55);margin-top:0.6rem;text-align:center">
+          File opened in new tab &mdash; tap the Share icon (&uarr;) then <strong>Open in Word</strong> or <strong>Save to Files</strong>
+        </p>
       </div>
 
       <div class="tabs">
@@ -1020,6 +1030,7 @@ Requirements:
 // ─── State ───────────────────────────────────────────────────────────────────
 let apiKey = '';
 let jdImageData = null; // base64
+let jdImageMediaType = 'image/jpeg'; // actual media type of uploaded image
 let currentResult = null; // {selectedTpl, tailoredData} — set after successful forge
 let activeChips = new Set();
 let currentTab = 'paste';
@@ -1125,6 +1136,10 @@ function showAddTemplateForm() {
   document.getElementById('tplFile').value = '';
   document.getElementById('tplName').value = '';
   document.getElementById('tplFileStatus').textContent = 'Supports .docx, .txt — formatting preserved for .docx';
+  const gdocUrl = document.getElementById('gdocUrl');
+  if (gdocUrl) gdocUrl.value = '';
+  const gdocStatus = document.getElementById('gdocStatus');
+  if (gdocStatus) { gdocStatus.style.display = 'none'; gdocStatus.style.color = ''; gdocStatus.innerHTML = ''; }
   const saveBtn = document.getElementById('saveTplBtn');
   if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Template'; }
   const addBtn = document.getElementById('addTplBtn');
@@ -1143,6 +1158,10 @@ function hideAddTemplateForm() {
   pendingTemplateText = '';
   pendingDocxBase64 = null;
   pendingParagraphs = null;
+  const gdocUrl = document.getElementById('gdocUrl');
+  if (gdocUrl) gdocUrl.value = '';
+  const gdocStatus = document.getElementById('gdocStatus');
+  if (gdocStatus) { gdocStatus.style.display = 'none'; gdocStatus.style.color = ''; gdocStatus.innerHTML = ''; }
 }
 
 function toggleAddTemplateForm() {
@@ -1150,6 +1169,48 @@ function toggleAddTemplateForm() {
     showAddTemplateForm();
   } else {
     hideAddTemplateForm();
+  }
+}
+
+async function fetchGoogleDoc() {
+  const urlInput = document.getElementById('gdocUrl');
+  const statusEl = document.getElementById('gdocStatus');
+  const url = urlInput.value.trim();
+  if (!url) return;
+
+  const idMatch = url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+  if (!idMatch) {
+    statusEl.textContent = 'Not a valid Google Doc URL.';
+    statusEl.style.display = 'block';
+    statusEl.style.color = 'rgba(14,14,14,0.6)';
+    return;
+  }
+
+  const docId = idMatch[1];
+  const fetchUrl = `https://docs.google.com/document/d/${docId}/pub?output=txt`;
+
+  statusEl.textContent = 'Fetching\u2026';
+  statusEl.style.display = 'block';
+  statusEl.style.color = 'rgba(14,14,14,0.5)';
+
+  try {
+    const resp = await fetch(fetchUrl);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const text = await resp.text();
+    if (!text.trim()) throw new Error('Empty response');
+
+    pendingTemplateText = text.trim();
+    document.getElementById('tplText').value = pendingTemplateText;
+    if (!document.getElementById('tplName').value.trim()) {
+      document.getElementById('tplName').value = 'Google Doc Resume';
+    }
+    statusEl.textContent = '\u2713 Content imported \u2014 review below and save.';
+    statusEl.style.color = 'var(--sage)';
+  } catch(e) {
+    statusEl.innerHTML = 'Could not fetch \u2014 the doc may not be published to web.<br>'
+      + '<strong>Fix:</strong> In Google Docs: File \u2192 Share \u2192 Publish to web \u2192 Plain text \u2192 Publish, then paste that URL here.<br>'
+      + '<strong>Or:</strong> File \u2192 Download \u2192 Microsoft Word (.docx), then upload above.';
+    statusEl.style.color = 'rgba(14,14,14,0.6)';
   }
 }
 
@@ -1314,6 +1375,7 @@ function handleDrop(e, type) {
 function handleImageFile(e) { processImageFile(e.target.files[0]); }
 
 function processImageFile(file) {
+  jdImageMediaType = file.type || 'image/jpeg';
   const reader = new FileReader();
   reader.onload = e => {
     jdImageData = e.target.result.split(',')[1]; // base64
@@ -1325,6 +1387,7 @@ function processImageFile(file) {
 
 function clearImage() {
   jdImageData = null;
+  jdImageMediaType = 'image/jpeg';
   document.getElementById('imgPreview').style.display = 'none';
   document.getElementById('jdImage').value = '';
 }
@@ -1401,7 +1464,7 @@ async function selectBestTemplate(jdText, jdImageData) {
 
   const userContent = [];
   if (jdImageData) {
-    userContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: jdImageData } });
+    userContent.push({ type: 'image', source: { type: 'base64', media_type: jdImageMediaType, data: jdImageData } });
     userContent.push({ type: 'text', text: 'Above is a screenshot of the job description.' });
   }
   userContent.push({ type: 'text', text: `My resume templates:\n\n${snippets}\n\n${jdText ? `Job description:\n${jdText}` : ''}` });
@@ -1423,7 +1486,7 @@ async function tailorAsStructured(tpl, jdText, jdImageData, focusInstructions, e
 
   const userContent = [];
   if (jdImageData) {
-    userContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: jdImageData } });
+    userContent.push({ type: 'image', source: { type: 'base64', media_type: jdImageMediaType, data: jdImageData } });
     userContent.push({ type: 'text', text: 'Above is a screenshot of the job description.' });
   }
   userContent.push({
@@ -1482,7 +1545,7 @@ async function tailorAsPlainText(tpl, jdText, jdImageData, focusInstructions, ex
 
   const userContent = [];
   if (jdImageData) {
-    userContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: jdImageData } });
+    userContent.push({ type: 'image', source: { type: 'base64', media_type: jdImageMediaType, data: jdImageData } });
     userContent.push({ type: 'text', text: 'Above is a screenshot of the job description.' });
   }
   userContent.push({
@@ -1691,11 +1754,21 @@ async function repackDocxWithNewText(docxBase64, paragraphMap) {
 
 function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  const isIOS = /ipad|iphone|ipod/i.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isIOS) {
+    window.open(url, '_blank');
+    const tip = document.getElementById('iosTip');
+    if (tip) tip.style.display = 'block';
+    // Don't revoke immediately — the new tab needs time to read the blob
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } else {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 }
 
 // ─── Download .docx ───────────────────────────────────────────────────────────
