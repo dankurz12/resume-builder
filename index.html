@@ -1200,8 +1200,8 @@ function saveNewTemplate() {
     };
     savedTemplates.push(tpl);
     persistTemplates();
-    renderTemplateList();
     hideAddTemplateForm();
+    setTimeout(renderTemplateList, 200); // let iOS restore background DOM after modal closes
   } catch(e) {
     alert('Error saving template: ' + e.message);
   }
