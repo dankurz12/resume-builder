@@ -13,21 +13,21 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-–ink: #0e0e0e;
-–paper: #f5f0e8;
-–cream: #ede8db;
-–gold: #b8953a;
-–gold-light: #d4a84b;
-–rust: #8b3a2a;
-–sage: #4a5c4e;
-–mist: #c8cfc9;
-–white: #fdfaf4;
+--ink: #0e0e0e;
+--paper: #f5f0e8;
+--cream: #ede8db;
+--gold: #b8953a;
+--gold-light: #d4a84b;
+--rust: #8b3a2a;
+--sage: #4a5c4e;
+--mist: #c8cfc9;
+--white: #fdfaf4;
 }
 
 body {
 font-family: ‘DM Sans’, sans-serif;
-background: var(–paper);
-color: var(–ink);
+background: var(--paper);
+color: var(--ink);
 min-height: 100vh;
 overflow-x: hidden;
 }
@@ -62,37 +62,37 @@ font-family: ‘Playfair Display’, serif;
 font-size: 1.5rem;
 font-weight: 900;
 letter-spacing: -0.02em;
-color: var(–ink);
+color: var(--ink);
 display: flex;
 align-items: center;
 gap: 0.5rem;
 }
 
 .logo span {
-color: var(–gold);
+color: var(--gold);
 }
 
 .api-pill {
 display: flex;
 align-items: center;
 gap: 0.5rem;
-background: var(–cream);
+background: var(--cream);
 border: 1px solid rgba(14,14,14,0.15);
 border-radius: 100px;
 padding: 0.4rem 0.9rem;
 font-family: ‘DM Mono’, monospace;
 font-size: 0.72rem;
-color: var(–ink);
+color: var(--ink);
 cursor: pointer;
 transition: all 0.2s;
 }
 
-.api-pill:hover { background: var(–ink); color: var(–paper); }
+.api-pill:hover { background: var(--ink); color: var(--paper); }
 
 .api-dot {
 width: 7px; height: 7px;
 border-radius: 50%;
-background: var(–rust);
+background: var(--rust);
 transition: background 0.3s;
 }
 
@@ -112,7 +112,7 @@ font-family: ‘DM Mono’, monospace;
 font-size: 0.72rem;
 letter-spacing: 0.18em;
 text-transform: uppercase;
-color: var(–gold);
+color: var(--gold);
 margin-bottom: 1rem;
 }
 
@@ -122,13 +122,13 @@ font-size: clamp(3rem, 6vw, 5.5rem);
 font-weight: 900;
 line-height: 1.0;
 letter-spacing: -0.03em;
-color: var(–ink);
+color: var(--ink);
 max-width: 14ch;
 }
 
 .hero h1 em {
 font-style: italic;
-color: var(–gold);
+color: var(--gold);
 }
 
 .hero-sub {
@@ -176,7 +176,7 @@ background: rgba(14,14,14,0.1);
 
 /* Cards */
 .card {
-background: var(–white);
+background: var(--white);
 border: 1px solid rgba(14,14,14,0.1);
 border-radius: 4px;
 overflow: hidden;
@@ -213,7 +213,7 @@ content: ‘’;
 display: inline-block;
 width: 6px; height: 6px;
 border-radius: 50%;
-background: var(–gold);
+background: var(--gold);
 }
 
 .card-body { padding: 1.5rem; }
@@ -226,12 +226,12 @@ padding: 2.5rem 1.5rem;
 text-align: center;
 cursor: pointer;
 transition: all 0.25s;
-background: var(–cream);
+background: var(--cream);
 position: relative;
 }
 
 .upload-zone:hover, .upload-zone.dragover {
-border-color: var(–gold);
+border-color: var(--gold);
 background: rgba(184,149,58,0.06);
 }
 
@@ -253,7 +253,7 @@ font-weight: 300;
 }
 
 .upload-zone strong {
-color: var(–ink);
+color: var(--ink);
 font-weight: 500;
 }
 
@@ -261,7 +261,7 @@ font-weight: 500;
 display: inline-flex;
 align-items: center;
 gap: 0.5rem;
-background: var(–sage);
+background: var(--sage);
 color: white;
 padding: 0.35rem 0.75rem;
 border-radius: 3px;
@@ -271,7 +271,7 @@ margin-top: 0.75rem;
 cursor: pointer;
 transition: background 0.2s;
 }
-.file-badge:hover { background: var(–rust); }
+.file-badge:hover { background: var(--rust); }
 
 /* Textarea */
 textarea {
@@ -283,13 +283,13 @@ font-family: ‘DM Sans’, sans-serif;
 font-size: 0.88rem;
 line-height: 1.6;
 resize: vertical;
-background: var(–cream);
-color: var(–ink);
+background: var(--cream);
+color: var(--ink);
 outline: none;
 transition: border-color 0.2s;
 min-height: 160px;
 }
-textarea:focus { border-color: var(–gold); }
+textarea:focus { border-color: var(--gold); }
 textarea::placeholder { color: rgba(14,14,14,0.35); }
 
 /* Or divider */
@@ -322,19 +322,19 @@ border-radius: 3px;
 padding: 0.6rem 0.9rem;
 font-family: ‘DM Mono’, monospace;
 font-size: 0.78rem;
-background: var(–cream);
-color: var(–ink);
+background: var(--cream);
+color: var(--ink);
 outline: none;
 transition: border-color 0.2s;
 min-width: 0;
 }
-.url-input:focus { border-color: var(–gold); }
+.url-input:focus { border-color: var(--gold); }
 .url-input::placeholder { color: rgba(14,14,14,0.35); }
 
 .btn-sm {
 padding: 0.6rem 1rem;
-background: var(–ink);
-color: var(–paper);
+background: var(--ink);
+color: var(--paper);
 border: none;
 border-radius: 3px;
 font-family: ‘DM Mono’, monospace;
@@ -344,7 +344,7 @@ letter-spacing: 0.06em;
 transition: background 0.2s;
 white-space: nowrap;
 }
-.btn-sm:hover { background: var(–gold); }
+.btn-sm:hover { background: var(--gold); }
 .btn-sm:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* Section label */
@@ -372,7 +372,7 @@ justify-content: center;
 .modal-overlay.open { display: flex; }
 
 .modal {
-background: var(–white);
+background: var(--white);
 border: 1px solid rgba(14,14,14,0.12);
 border-radius: 4px;
 padding: 2rem;
@@ -414,12 +414,12 @@ border-radius: 3px;
 padding: 0.7rem 1rem;
 font-family: ‘DM Mono’, monospace;
 font-size: 0.8rem;
-background: var(–cream);
-color: var(–ink);
+background: var(--cream);
+color: var(--ink);
 outline: none;
 margin-bottom: 1rem;
 }
-.modal input:focus { border-color: var(–gold); }
+.modal input:focus { border-color: var(--gold); }
 
 .modal-note {
 font-size: 0.75rem !important;
@@ -458,8 +458,8 @@ color: var(--ink) !important;
 .btn-forge {
 width: 100%;
 padding: 1.1rem;
-background: var(–ink);
-color: var(–paper);
+background: var(--ink);
+color: var(--paper);
 border: none;
 border-radius: 3px;
 font-family: ‘Playfair Display’, serif;
@@ -482,14 +482,14 @@ overflow: hidden;
 content: ‘’;
 position: absolute;
 inset: 0;
-background: var(–gold);
+background: var(--gold);
 transform: scaleX(0);
 transform-origin: left;
 transition: transform 0.3s ease;
 }
 
 .btn-forge:hover::before { transform: scaleX(1); }
-.btn-forge:hover { color: var(–ink); }
+.btn-forge:hover { color: var(--ink); }
 .btn-forge span { position: relative; z-index: 1; }
 .btn-forge:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-forge:disabled::before { display: none; }
@@ -502,7 +502,7 @@ display: none;
 .output-panel.visible { display: block; }
 
 .status-log {
-background: var(–ink);
+background: var(--ink);
 color: #a8c5a0;
 font-family: ‘DM Mono’, monospace;
 font-size: 0.78rem;
@@ -519,8 +519,8 @@ min-height: 80px;
 /* Result card */
 .result-card {
 display: none;
-background: var(–white);
-border: 2px solid var(–gold);
+background: var(--white);
+border: 2px solid var(--gold);
 border-radius: 4px;
 padding: 2rem;
 margin-top: 1.5rem;
@@ -559,8 +559,8 @@ display: inline-flex;
 align-items: center;
 gap: 0.5rem;
 padding: 0.75rem 1.5rem;
-background: var(–gold);
-color: var(–ink);
+background: var(--gold);
+color: var(--ink);
 border: none;
 border-radius: 3px;
 font-family: ‘DM Mono’, monospace;
@@ -571,7 +571,7 @@ letter-spacing: 0.08em;
 transition: all 0.2s;
 text-transform: uppercase;
 }
-.btn-download:hover { background: var(–ink); color: var(–paper); }
+.btn-download:hover { background: var(--ink); color: var(--paper); }
 
 .changes-list {
 margin-top: 0.5rem;
@@ -598,9 +598,9 @@ text-transform: uppercase;
 height: fit-content;
 margin-top: 1px;
 }
-.change-tag.added { background: rgba(74,92,78,0.15); color: var(–sage); }
-.change-tag.modified { background: rgba(184,149,58,0.15); color: var(–gold); }
-.change-tag.keyword { background: rgba(139,58,42,0.12); color: var(–rust); }
+.change-tag.added { background: rgba(74,92,78,0.15); color: var(--sage); }
+.change-tag.modified { background: rgba(184,149,58,0.15); color: var(--gold); }
+.change-tag.keyword { background: rgba(139,58,42,0.12); color: var(--rust); }
 
 /* Tabs */
 .tabs {
@@ -623,7 +623,7 @@ transition: all 0.2s;
 user-select: none;
 margin-bottom: -1px;
 }
-.tab.active { color: var(–ink); border-bottom-color: var(–gold); }
+.tab.active { color: var(--ink); border-bottom-color: var(--gold); }
 
 .tab-content { display: none; }
 .tab-content.active { display: block; }
@@ -635,7 +635,7 @@ font-family: ‘DM Mono’, monospace;
 font-size: 0.75rem;
 line-height: 1.8;
 color: rgba(14,14,14,0.75);
-background: var(–cream);
+background: var(--cream);
 padding: 1.25rem;
 border-radius: 3px;
 max-height: 400px;
@@ -648,7 +648,7 @@ border: 1px solid rgba(14,14,14,0.08);
 .spinner {
 width: 16px; height: 16px;
 border: 2px solid rgba(245,240,232,0.3);
-border-top-color: var(–paper);
+border-top-color: var(--paper);
 border-radius: 50%;
 animation: spin 0.7s linear infinite;
 flex-shrink: 0;
@@ -788,7 +788,7 @@ transition: all 0.15s;
 color: rgba(14,14,14,0.6);
 user-select: none;
 }
-.chip:hover { background: var(–ink); color: var(–paper); border-color: var(–ink); }
+.chip:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
 .progress-bar-wrap {
 height: 2px;
@@ -799,7 +799,7 @@ overflow: hidden;
 }
 .progress-bar {
 height: 100%;
-background: var(–gold);
+background: var(--gold);
 border-radius: 1px;
 width: 0%;
 transition: width 0.4s ease;
@@ -1520,7 +1520,10 @@ CRITICAL RULES for PARAGRAPHS:
 - Only change the "text" value. Never add or remove idx values.
 - If a paragraph should stay unchanged, copy its text verbatim.
 - If a paragraph should be blank, use "text": "".
-- Never fabricate experience or credentials.${focusInstructions}`,
+- Never fabricate experience or credentials.
+- "idx" MUST be a JSON number (integer), NOT a string — use 0, 1, 2 not "0", "1", "2".
+- Do NOT wrap the JSON in markdown code fences. No backticks anywhere in your response.
+- Return ONLY the two XML-tagged blocks shown above. No explanation text outside the tags.${focusInstructions}`,
     userContent,
     maxTokens: 4000
   });
@@ -1528,11 +1531,18 @@ CRITICAL RULES for PARAGRAPHS:
   const parasMatch = raw.match(/<PARAGRAPHS>([\s\S]*?)<\/PARAGRAPHS>/);
   if (!parasMatch) throw new Error('Could not parse structured response. Try again.');
   let rawParas;
-  try { rawParas = JSON.parse(parasMatch[1].trim()); }
+  try {
+    const jsonStr = parasMatch[1].trim()
+      .replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim();
+    rawParas = JSON.parse(jsonStr);
+  }
   catch(e) { throw new Error('Invalid paragraph JSON in response. Try again.'); }
 
   const paragraphMap = {};
-  rawParas.forEach(p => { if (typeof p.idx === 'number') paragraphMap[p.idx] = p.text ?? ''; });
+  rawParas.forEach(p => {
+    const idx = typeof p.idx === 'number' ? p.idx : parseInt(p.idx, 10);
+    if (!isNaN(idx)) paragraphMap[idx] = p.text ?? '';
+  });
 
   const changesMatch = raw.match(/<CHANGES>([\s\S]*?)<\/CHANGES>/);
   let changes = [];
