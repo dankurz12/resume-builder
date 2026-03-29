@@ -14,7 +14,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "docx": "^8.5.0",
     "jsdom": "^29.0.1",
-    "jszip": "^3.10.1"
+    "jszip": "^3.10.1",
+    "playwright": "^1.58.2"
   }
 }

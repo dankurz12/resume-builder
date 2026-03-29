@@ -37,7 +37,7 @@ body::before {
 content: ‘’;
 position: fixed;
 inset: 0;
-background-image: url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 256 256’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘noise’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23noise)’ opacity=‘0.04’/%3E%3C/svg%3E”);
+background-image: url("data:image/svg+xml,%3Csvg viewBox=‘0 0 256 256’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘noise’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23noise)’ opacity=‘0.04’/%3E%3C/svg%3E");
 pointer-events: none;
 z-index: 1000;
 opacity: 0.5;
@@ -235,7 +235,7 @@ border-color: var(--gold);
 background: rgba(184,149,58,0.06);
 }
 
-.upload-zone input[type=”file”] {
+.upload-zone input[type="file"] {
 position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
 display: block; z-index: 2;
 }
@@ -841,61 +841,64 @@ transition: width 0.4s ease;
 </div>
 
 <!-- Add Template Modal -->
-<div class=”modal-overlay” id=”addTplModal” style=”display:none!important”></div>
+<div class="modal-overlay" id="addTplModal" style="display:none!important"></div>
 
-<div class=”workspace”>
+<div class="workspace">
 
   <!-- Section divider -->
-  <div class=”section-row”>
-    <span class=”section-row-label”>Step 1 — Your Resumes</span>
-    <span class=”section-row-line”></span>
+  <div class="section-row">
+    <span class="section-row-label">Step 1 — Your Resumes</span>
+    <span class="section-row-line"></span>
   </div>
 
   <!-- Template Library: full width -->
 
-  <div class=”card fade-up” style=”grid-column: 1 / -1; animation-delay:0s; overflow: visible;”>
-    <div class=”card-header”>
-      <span class=”card-title”>00 — My Resume Templates</span>
-      <span id=”tplCount” style=”font-family:’DM Mono’,monospace;font-size:0.7rem;color:rgba(14,14,14,0.4)”>0 saved</span>
+  <div class="card fade-up" style="grid-column: 1 / -1; animation-delay:0s; overflow: visible;">
+    <div class="card-header">
+      <span class="card-title">00 — My Resume Templates</span>
+      <span id="tplCount" style="font-family:’DM Mono’,monospace;font-size:0.7rem;color:rgba(14,14,14,0.4)">0 saved</span>
     </div>
-    <div class=”card-body”>
+    <div class="card-body">
 
       <!-- Inline add-template form — file input must stay in normal page flow for iOS -->
-      <div id=”inlineAddTpl” style=”display:none;margin-bottom:1.25rem”>
-        <span class=”section-label”>Template name</span>
-        <input type=”text” id=”tplName” placeholder=”e.g. Software Engineer, Product Manager…”
-          style=”width:100%;border:1px solid rgba(14,14,14,0.15);border-radius:3px;padding:0.65rem 0.9rem;font-family:'DM Sans',sans-serif;font-size:0.9rem;background:var(--cream);color:var(--ink);outline:none;margin-bottom:1rem” />
-        <span class=”section-label”>Upload resume file (.docx or .txt)</span>
-        <div class=”upload-zone” id=”tplUploadZone”
-          ondragover=”handleDrag(event,'tplUploadZone')”
-          ondragleave=”handleDragLeave('tplUploadZone')”
-          ondrop=”handleDrop(event,'template')”
-          style=”padding:1.5rem;margin-bottom:1rem;cursor:pointer”>
-          <input type=”file” id=”tplFile” accept=”.docx,.txt” onchange=”handleTemplateFile(event)”>
-          <span class=”upload-icon” style=”font-size:1.8rem”>📄</span>
-          <p style=”margin-bottom:0.25rem”><strong>Tap here to choose your file</strong></p>
-          <p id=”tplFileStatus” style=”font-size:0.8rem”>Supports .docx, .txt — formatting preserved for .docx</p>
+      <div id="inlineAddTpl" style="display:none;margin-bottom:1.25rem">
+        <span class="section-label">Template name</span>
+        <input type="text" id="tplName" placeholder="e.g. Software Engineer, Product Manager…"
+          style="width:100%;border:1px solid rgba(14,14,14,0.15);border-radius:3px;padding:0.65rem 0.9rem;font-family:'DM Sans',sans-serif;font-size:0.9rem;background:var(--cream);color:var(--ink);outline:none;margin-bottom:1rem" />
+        <span class="section-label">Upload resume file (.docx or .txt)</span>
+        <label for="tplFile" style="display:block;cursor:pointer;margin-bottom:1rem">
+          <div class="upload-zone" id="tplUploadZone"
+            ondragover="handleDrag(event,'tplUploadZone')"
+            ondragleave="handleDragLeave('tplUploadZone')"
+            ondrop="handleDrop(event,'template')"
+            style="padding:1.5rem;margin-bottom:0;cursor:pointer">
+            <span class="upload-icon" style="font-size:1.8rem">📄</span>
+            <p style="margin-bottom:0.25rem"><strong>Tap here to choose your file</strong></p>
+            <p id="tplFileStatus" style="font-size:0.8rem">Supports .docx, .txt — formatting preserved for .docx</p>
+          </div>
+        </label>
+        <input type="file" id="tplFile" accept=".docx,.txt" onchange="handleTemplateFile(event)"
+          style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;left:-9999px">
+        <div class="or-divider">or import from Google Doc</div>
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+          <input type="text" id="gdocUrl" placeholder="Paste Google Doc link…"
+            style="flex:1;border:1px solid rgba(14,14,14,0.15);border-radius:3px;padding:0.65rem 0.9rem;font-family:'DM Sans',sans-serif;font-size:0.88rem;background:var(--white);outline:none;" />
+          <button class="btn-sm" onclick="fetchGoogleDoc()">Fetch</button>
         </div>
-        <div class=”or-divider”>or import from Google Doc</div>
-        <div style=”display:flex;gap:0.5rem;margin-bottom:0.75rem”>
-          <input type=”text” id=”gdocUrl” placeholder=”Paste Google Doc link…”
-            style=”flex:1;border:1px solid rgba(14,14,14,0.15);border-radius:3px;padding:0.65rem 0.9rem;font-family:'DM Sans',sans-serif;font-size:0.88rem;background:var(--white);outline:none;” />
-          <button class=”btn-sm” onclick=”fetchGoogleDoc()”>Fetch</button>
-        </div>
-        <p id=”gdocStatus” style=”font-family:'DM Mono',monospace;font-size:0.72rem;color:rgba(14,14,14,0.5);margin-top:-0.25rem;margin-bottom:0.75rem;display:none”></p>
-        <div class=”or-divider”>or paste text</div>
-        <textarea id=”tplText” placeholder=”Paste your resume content here…” rows=”6”></textarea>
-        <div class=”modal-actions” style=”margin-top:1rem”>
-          <button class=”btn-sm” id=”saveTplBtn” onclick=”saveNewTemplate()”>Save Template</button>
-          <button class=”btn-sm btn-cancel” onclick=”hideAddTemplateForm()”>Cancel</button>
+        <p id="gdocStatus" style="font-family:'DM Mono',monospace;font-size:0.72rem;color:rgba(14,14,14,0.5);margin-top:-0.25rem;margin-bottom:0.75rem;display:none"></p>
+        <div class="or-divider">or paste text</div>
+        <textarea id="tplText" placeholder="Paste your resume content here…" rows="6"></textarea>
+        <div class="modal-actions" style="margin-top:1rem">
+          <button class="btn-sm" id="saveTplBtn" onclick="saveNewTemplate()">Save Template</button>
+          <button class="btn-sm btn-cancel" onclick="hideAddTemplateForm()">Cancel</button>
         </div>
       </div>
 
       <!-- Template list -->
-      <div class=”tpl-list” id=”tplList”></div>
+      <div class="tpl-list" id="tplList"></div>
 
       <!-- Empty state -->
-      <div class=”tpl-empty” id=”tplEmpty”>
+      <div class="tpl-empty" id="tplEmpty">
         <p>No templates saved yet.<br>Click <strong>+ Add Template</strong> above — Claude will automatically pick the best one for each job.</p>
       </div>
 
@@ -903,54 +906,57 @@ transition: width 0.4s ease;
   </div>
 
   <!-- Section divider -->
-  <div class=”section-row”>
-    <span class=”section-row-label”>Step 2 — Tailor</span>
-    <span class=”section-row-line”></span>
+  <div class="section-row">
+    <span class="section-row-label">Step 2 — Tailor</span>
+    <span class="section-row-line"></span>
   </div>
 
   <!-- Left: Job Description -->
 
-  <div class=”card fade-up” style=”animation-delay:0.1s”>
-    <div class=”card-header”>
-      <span class=”card-title”>01 — Job Description</span>
+  <div class="card fade-up" style="animation-delay:0.1s">
+    <div class="card-header">
+      <span class="card-title">01 — Job Description</span>
     </div>
-    <div class=”card-body”>
-      <div class=”tabs”>
-        <div class=”tab active” onclick=”switchTab(‘paste’)”>Paste Text</div>
-        <div class=”tab” onclick=”switchTab(‘url’)”>From URL</div>
-        <div class=”tab” onclick=”switchTab(‘image’)”>Screenshot</div>
+    <div class="card-body">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(‘paste’)">Paste Text</div>
+        <div class="tab" onclick="switchTab(‘url’)">From URL</div>
+        <div class="tab" onclick="switchTab(‘image’)">Screenshot</div>
       </div>
 
-      <div class=”tab-content active” id=”tab-paste”>
-        <textarea id=”jdText” placeholder=”Paste the full job description here…
+      <div class="tab-content active" id="tab-paste">
+        <textarea id="jdText" placeholder="Paste the full job description here…
 
 About the Role:
 We’re looking for a Senior Product Manager to join our growing team…
 
 Requirements:
 • 5+ years of product management experience
-• Strong analytical skills…” rows=”14”></textarea>
+• Strong analytical skills…" rows="14"></textarea>
       </div>
 
-      <div class=”tab-content” id=”tab-url”>
-        <span class=”section-label”>Job posting URL</span>
-        <div class=”url-row”>
-          <input class=”url-input” id=”jdUrl” placeholder=”https://jobs.company.com/role-id” />
-          <button class=”btn-sm” onclick=”fetchUrl()”>Fetch ↗</button>
+      <div class="tab-content" id="tab-url">
+        <span class="section-label">Job posting URL</span>
+        <div class="url-row">
+          <input class="url-input" id="jdUrl" placeholder="https://jobs.company.com/role-id" />
+          <button class="btn-sm" onclick="fetchUrl()">Fetch ↗</button>
         </div>
-        <p style=”font-size:0.78rem;color:rgba(14,14,14,0.4);margin-top:0.75rem;font-family:’DM Mono’,monospace;line-height:1.6”>Note: URL fetching requires a backend proxy due to CORS. Paste the job description text instead.</p>
+        <p style="font-size:0.78rem;color:rgba(14,14,14,0.4);margin-top:0.75rem;font-family:’DM Mono’,monospace;line-height:1.6">Note: URL fetching requires a backend proxy due to CORS. Paste the job description text instead.</p>
       </div>
 
-      <div class=”tab-content” id=”tab-image”>
-        <div class=”upload-zone” id=”imgZone” ondragover=”handleDrag(event,’imgZone’)” ondragleave=”handleDragLeave(‘imgZone’)” ondrop=”handleDrop(event,’image’)”>
-          <input type=”file” id=”jdImage” accept=”image/*” onchange=”handleImageFile(event)”>
-          <span class=”upload-icon”>🖼️</span>
-          <p><strong>Drop a screenshot of the job posting</strong></p>
-          <p>Claude will read it via vision</p>
-        </div>
-        <div id=”imgPreview” style=”display:none;margin-top:0.75rem”>
-          <img id=”imgThumb” style=”max-width:100%;border-radius:3px;border:1px solid rgba(14,14,14,0.1)” />
-          <span class=”file-badge” onclick=”clearImage()”>Remove ✕</span>
+      <div class="tab-content" id="tab-image">
+        <label for="jdImage" style="display:block;cursor:pointer">
+          <div class="upload-zone" id="imgZone" ondragover="handleDrag(event,’imgZone’)" ondragleave="handleDragLeave(‘imgZone’)" ondrop="handleDrop(event,’image’)">
+            <span class="upload-icon">🖼️</span>
+            <p><strong>Drop a screenshot of the job posting</strong></p>
+            <p>Claude will read it via vision</p>
+          </div>
+        </label>
+        <input type="file" id="jdImage" accept="image/*" onchange="handleImageFile(event)"
+          style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;left:-9999px">
+        <div id="imgPreview" style="display:none;margin-top:0.75rem">
+          <img id="imgThumb" style="max-width:100%;border-radius:3px;border:1px solid rgba(14,14,14,0.1)" />
+          <span class="file-badge" onclick="clearImage()">Remove ✕</span>
         </div>
       </div>
     </div>
@@ -958,24 +964,24 @@ Requirements:
 
   <!-- Right: Tailoring options -->
 
-  <div class=”card fade-up” style=”animation-delay:0.2s”>
-    <div class=”card-header”>
-      <span class=”card-title”>02 — Tailoring Options</span>
+  <div class="card fade-up" style="animation-delay:0.2s">
+    <div class="card-header">
+      <span class="card-title">02 — Tailoring Options</span>
     </div>
-    <div class=”card-body”>
-      <span class=”section-label”>Focus areas</span>
-      <div class=”chips”>
-        <div class=”chip” onclick=”toggleChip(this)”>Skills keywords</div>
-        <div class=”chip” onclick=”toggleChip(this)”>Reorder bullet points</div>
-        <div class=”chip” onclick=”toggleChip(this)”>Sharpen summary</div>
-        <div class=”chip” onclick=”toggleChip(this)”>Match job title</div>
-        <div class=”chip” onclick=”toggleChip(this)”>Quantify achievements</div>
-        <div class=”chip” onclick=”toggleChip(this)”>Remove irrelevant exp.</div>
+    <div class="card-body">
+      <span class="section-label">Focus areas</span>
+      <div class="chips">
+        <div class="chip" onclick="toggleChip(this)">Skills keywords</div>
+        <div class="chip" onclick="toggleChip(this)">Reorder bullet points</div>
+        <div class="chip" onclick="toggleChip(this)">Sharpen summary</div>
+        <div class="chip" onclick="toggleChip(this)">Match job title</div>
+        <div class="chip" onclick="toggleChip(this)">Quantify achievements</div>
+        <div class="chip" onclick="toggleChip(this)">Remove irrelevant exp.</div>
       </div>
 
-      <div style=”margin-top:1.5rem”>
-        <span class=”section-label”>Additional instructions (optional)</span>
-        <textarea id=”extraInstructions” placeholder=”e.g. Keep it to one page. Emphasize leadership experience. Don’t remove the volunteer section…” rows=”5”></textarea>
+      <div style="margin-top:1.5rem">
+        <span class="section-label">Additional instructions (optional)</span>
+        <textarea id="extraInstructions" placeholder="e.g. Keep it to one page. Emphasize leadership experience. Don’t remove the volunteer section…" rows="5"></textarea>
       </div>
     </div>
   </div>
@@ -1164,6 +1170,7 @@ function showAddTemplateForm() {
   const addBtn = document.getElementById('addTplBtn');
   if (addBtn) addBtn.textContent = '✕ Close';
   const form = document.getElementById('inlineAddTpl');
+  if (!form) return;
   form.style.display = 'block';
   // Scroll to form — works on iOS
   const y = form.getBoundingClientRect().top + window.scrollY - 90;
@@ -1171,7 +1178,8 @@ function showAddTemplateForm() {
 }
 
 function hideAddTemplateForm() {
-  document.getElementById('inlineAddTpl').style.display = 'none';
+  const _form = document.getElementById('inlineAddTpl');
+  if (_form) _form.style.display = 'none';
   const addBtn = document.getElementById('addTplBtn');
   if (addBtn) addBtn.textContent = '+ Add Template';
   pendingTemplateText = '';
@@ -1184,7 +1192,8 @@ function hideAddTemplateForm() {
 }
 
 function toggleAddTemplateForm() {
-  if (document.getElementById('inlineAddTpl').style.display === 'none') {
+  const form = document.getElementById('inlineAddTpl');
+  if (!form || form.style.display === 'none') {
     showAddTemplateForm();
   } else {
     hideAddTemplateForm();
