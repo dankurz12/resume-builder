@@ -840,34 +840,7 @@ transition: width 0.4s ease;
 </div>
 
 <!-- Add Template Modal -->
-<div class=”modal-overlay” id=”addTplModal”>
-  <div class=”modal”>
-    <h2>Add Resume Template</h2>
-    <span class=”section-label”>Template name</span>
-    <input type=”text” id=”tplName” placeholder=”e.g. Software Engineer, Product Manager…” />
-    <span class=”section-label” style=”margin-top:1rem”>Upload resume file (.docx or .txt)</span>
-    <div class=”upload-zone” id=”tplUploadZone” ondragover=”handleDrag(event,'tplUploadZone')” ondragleave=”handleDragLeave('tplUploadZone')” ondrop=”handleDrop(event,'template')” style=”padding:1.25rem;margin-bottom:1rem”>
-      <input type=”file” id=”tplFile” accept=”.docx,.txt” onchange=”handleTemplateFile(event)”>
-      <span class=”upload-icon” style=”font-size:1.4rem”>📄</span>
-      <p><strong>Drop file here</strong> or tap the button below</p>
-      <label for=”tplFile” class=”browse-btn” style=”display:inline-block;margin-bottom:0.75rem;cursor:pointer”>Browse Files</label>
-      <p id=”tplFileStatus”>Supports .docx, .txt — formatting preserved for .docx</p>
-    </div>
-    <div class=”or-divider”>or import from Google Doc</div>
-    <div style=”display:flex;gap:0.5rem;margin-bottom:0.75rem”>
-      <input type=”text” id=”gdocUrl” placeholder=”Paste Google Doc link…”
-        style=”flex:1;border:1px solid rgba(14,14,14,0.15);border-radius:3px;padding:0.65rem 0.9rem;font-family:'DM Sans',sans-serif;font-size:0.88rem;background:var(--white);outline:none;” />
-      <button class=”btn-sm” onclick=”fetchGoogleDoc()”>Fetch</button>
-    </div>
-    <p id=”gdocStatus” style=”font-family:'DM Mono',monospace;font-size:0.72rem;color:rgba(14,14,14,0.5);margin-top:-0.25rem;margin-bottom:0.75rem;display:none”></p>
-    <div class=”or-divider”>or paste text</div>
-    <textarea id=”tplText” placeholder=”Paste your resume content here…” rows=”6”></textarea>
-    <div class=”modal-actions” style=”margin-top:1.25rem”>
-      <button class=”btn-sm” id=”saveTplBtn” onclick=”saveNewTemplate()”>Save Template</button>
-      <button class=”btn-sm btn-cancel” onclick=”hideAddTemplateForm()”>Cancel</button>
-    </div>
-  </div>
-</div>
+<div class=”modal-overlay” id=”addTplModal” style=”display:none!important”></div>
 
 <div class=”workspace”>
 
@@ -885,6 +858,38 @@ transition: width 0.4s ease;
       <span id=”tplCount” style=”font-family:’DM Mono’,monospace;font-size:0.7rem;color:rgba(14,14,14,0.4)”>0 saved</span>
     </div>
     <div class=”card-body”>
+
+      <!-- Inline add-template form — file input must stay in normal page flow for iOS -->
+      <div id=”inlineAddTpl” style=”display:none;margin-bottom:1.25rem”>
+        <span class=”section-label”>Template name</span>
+        <input type=”text” id=”tplName” placeholder=”e.g. Software Engineer, Product Manager…”
+          style=”width:100%;border:1px solid rgba(14,14,14,0.15);border-radius:3px;padding:0.65rem 0.9rem;font-family:'DM Sans',sans-serif;font-size:0.9rem;background:var(--cream);color:var(--ink);outline:none;margin-bottom:1rem” />
+        <span class=”section-label”>Upload resume file (.docx or .txt)</span>
+        <div class=”upload-zone” id=”tplUploadZone”
+          ondragover=”handleDrag(event,'tplUploadZone')”
+          ondragleave=”handleDragLeave('tplUploadZone')”
+          ondrop=”handleDrop(event,'template')”
+          onclick=”document.getElementById('tplFile').click()”
+          style=”padding:1.5rem;margin-bottom:1rem;cursor:pointer”>
+          <input type=”file” id=”tplFile” accept=”.docx,.txt” onchange=”handleTemplateFile(event)”>
+          <span class=”upload-icon” style=”font-size:1.8rem”>📄</span>
+          <p style=”margin-bottom:0.25rem”><strong>Tap here to choose your file</strong></p>
+          <p id=”tplFileStatus” style=”font-size:0.8rem”>Supports .docx, .txt — formatting preserved for .docx</p>
+        </div>
+        <div class=”or-divider”>or import from Google Doc</div>
+        <div style=”display:flex;gap:0.5rem;margin-bottom:0.75rem”>
+          <input type=”text” id=”gdocUrl” placeholder=”Paste Google Doc link…”
+            style=”flex:1;border:1px solid rgba(14,14,14,0.15);border-radius:3px;padding:0.65rem 0.9rem;font-family:'DM Sans',sans-serif;font-size:0.88rem;background:var(--white);outline:none;” />
+          <button class=”btn-sm” onclick=”fetchGoogleDoc()”>Fetch</button>
+        </div>
+        <p id=”gdocStatus” style=”font-family:'DM Mono',monospace;font-size:0.72rem;color:rgba(14,14,14,0.5);margin-top:-0.25rem;margin-bottom:0.75rem;display:none”></p>
+        <div class=”or-divider”>or paste text</div>
+        <textarea id=”tplText” placeholder=”Paste your resume content here…” rows=”6”></textarea>
+        <div class=”modal-actions” style=”margin-top:1rem”>
+          <button class=”btn-sm” id=”saveTplBtn” onclick=”saveNewTemplate()”>Save Template</button>
+          <button class=”btn-sm btn-cancel” onclick=”hideAddTemplateForm()”>Cancel</button>
+        </div>
+      </div>
 
       <!-- Template list -->
       <div class=”tpl-list” id=”tplList”></div>
@@ -1158,12 +1163,15 @@ function showAddTemplateForm() {
   if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Template'; }
   const addBtn = document.getElementById('addTplBtn');
   if (addBtn) addBtn.textContent = '✕ Close';
-  document.getElementById('addTplModal').classList.add('open');
-  setTimeout(() => document.getElementById('tplName').focus(), 50);
+  const form = document.getElementById('inlineAddTpl');
+  form.style.display = 'block';
+  // Scroll to form — works on iOS
+  const y = form.getBoundingClientRect().top + window.scrollY - 90;
+  window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
 }
 
 function hideAddTemplateForm() {
-  document.getElementById('addTplModal').classList.remove('open');
+  document.getElementById('inlineAddTpl').style.display = 'none';
   const addBtn = document.getElementById('addTplBtn');
   if (addBtn) addBtn.textContent = '+ Add Template';
   pendingTemplateText = '';
@@ -1176,10 +1184,10 @@ function hideAddTemplateForm() {
 }
 
 function toggleAddTemplateForm() {
-  if (document.getElementById('addTplModal').classList.contains('open')) {
-    hideAddTemplateForm();
-  } else {
+  if (document.getElementById('inlineAddTpl').style.display === 'none') {
     showAddTemplateForm();
+  } else {
+    hideAddTemplateForm();
   }
 }
 
