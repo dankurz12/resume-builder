@@ -849,7 +849,8 @@ transition: width 0.4s ease;
     <div class=”upload-zone” id=”tplUploadZone” ondragover=”handleDrag(event,'tplUploadZone')” ondragleave=”handleDragLeave('tplUploadZone')” ondrop=”handleDrop(event,'template')” style=”padding:1.25rem;margin-bottom:1rem”>
       <input type=”file” id=”tplFile” accept=”.docx,.txt” onchange=”handleTemplateFile(event)”>
       <span class=”upload-icon” style=”font-size:1.4rem”>📄</span>
-      <p><strong>Drop file here</strong> or click to browse</p>
+      <p><strong>Drop file here</strong> or tap the button below</p>
+      <label for=”tplFile” class=”browse-btn” style=”display:inline-block;margin-bottom:0.75rem;cursor:pointer”>Browse Files</label>
       <p id=”tplFileStatus”>Supports .docx, .txt — formatting preserved for .docx</p>
     </div>
     <div class=”or-divider”>or import from Google Doc</div>
